@@ -1,0 +1,234 @@
+'use client'
+
+import { useId, useState } from 'react'
+import { Send, CheckCircle2, ArrowRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Field, inputBase, selectClass, selectChevronStyle, fieldBorder } from '@/components/ui/Field'
+import { Button } from '@/components/ui/Button'
+import { trackEvent, GA_EVENTS } from '@/lib/analytics'
+
+const TOPICS = [
+  'General question',
+  'Booking help',
+  'Existing booking',
+  'Partnerships',
+  'Press / media',
+  'Other',
+] as const
+
+type Form = {
+  name: string
+  email: string
+  phone: string
+  topic: string
+  message: string
+}
+
+type Errors = Partial<Record<keyof Form, string>>
+
+const EMPTY: Form = {
+  name: '',
+  email: '',
+  phone: '',
+  topic: TOPICS[0],
+  message: '',
+}
+
+function validate(form: Form): Errors {
+  const e: Errors = {}
+  if (!form.name.trim()) e.name = 'Please tell us your name'
+  if (!form.email.trim()) {
+    e.email = 'Email is required so we can reply'
+  } else if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(form.email.trim())) {
+    e.email = 'Please enter a valid email address'
+  }
+  if (form.phone.trim() && form.phone.replace(/\D/g, '').length < 9) {
+    e.phone = 'Please enter a valid mobile number'
+  }
+  if (!form.message.trim()) {
+    e.message = 'A short note helps us reply better'
+  } else if (form.message.trim().length < 10) {
+    e.message = 'A few more words please'
+  }
+  return e
+}
+
+export function ContactForm() {
+  const baseId = useId()
+  const [form, setForm] = useState<Form>(EMPTY)
+  const [errors, setErrors] = useState<Errors>({})
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
+  const id = (k: keyof Form) => `${baseId}-${k}`
+
+  const update = <K extends keyof Form>(key: K, value: Form[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }))
+    if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }))
+  }
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitError(null)
+
+    const v = validate(form)
+    if (Object.keys(v).length) {
+      setErrors(v)
+      const firstKey = Object.keys(v)[0]
+      document.getElementById(`field-${id(firstKey as keyof Form)}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      })
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string }
+        setSubmitting(false)
+        setSubmitError(data.error ?? 'Something went wrong. Please try again.')
+        return
+      }
+      trackEvent(GA_EVENTS.CONTACT_SUBMITTED, { form: 'contact', topic: form.topic })
+      setSubmitted(true)
+    } catch {
+      setSubmitting(false)
+      setSubmitError('Network error. Please check your connection and try again.')
+    }
+  }
+
+  const reset = () => {
+    setSubmitted(false)
+    setSubmitting(false)
+    setForm(EMPTY)
+    setErrors({})
+    setSubmitError(null)
+  }
+
+  if (submitted) {
+    return (
+      <div className="text-center py-8">
+        <div
+          className="w-14 h-14 rounded-full bg-success-muted flex items-center justify-center mx-auto"
+          aria-hidden="true"
+        >
+          <CheckCircle2 className="w-7 h-7 text-success" />
+        </div>
+        <h3 className="text-light-text text-xl font-bold mt-4">Message sent</h3>
+        <p className="text-light-text-secondary text-sm mt-2 max-w-md mx-auto leading-relaxed">
+          Thanks for reaching out. We&apos;ll reply within a few hours — usually faster on
+          weekdays. Check your inbox (and spam folder, just in case).
+        </p>
+        <button
+          type="button"
+          onClick={reset}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:gap-2.5 transition-all duration-200 mt-6"
+        >
+          Send another message
+          <ArrowRight className="w-4 h-4" aria-hidden="true" />
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <form onSubmit={onSubmit} noValidate>
+      {submitError && (
+        <div
+          className="mb-4 rounded-card border border-error/30 bg-error/5 px-4 py-3 text-sm text-error"
+          role="alert"
+        >
+          {submitError}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field id={id('name')} label="Your name" required error={errors.name}>
+          <input
+            id={id('name')}
+            type="text"
+            autoComplete="name"
+            value={form.name}
+            onChange={(e) => update('name', e.target.value)}
+            className={cn(inputBase, fieldBorder(errors.name))}
+          />
+        </Field>
+
+        <Field id={id('email')} label="Email" required error={errors.email}>
+          <input
+            id={id('email')}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            value={form.email}
+            onChange={(e) => update('email', e.target.value)}
+            className={cn(inputBase, fieldBorder(errors.email))}
+          />
+        </Field>
+
+        <Field id={id('phone')} label="Phone / WhatsApp" optional error={errors.phone}>
+          <input
+            id={id('phone')}
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            placeholder="+971 50 000 0000"
+            value={form.phone}
+            onChange={(e) => update('phone', e.target.value)}
+            className={cn(inputBase, fieldBorder(errors.phone))}
+          />
+        </Field>
+
+        <Field id={id('topic')} label="What's it about?" required>
+          <select
+            id={id('topic')}
+            value={form.topic}
+            onChange={(e) => update('topic', e.target.value)}
+            className={cn(selectClass, fieldBorder(undefined))}
+            style={selectChevronStyle}
+          >
+            {TOPICS.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+
+      <div className="mt-4">
+        <Field id={id('message')} label="Your message" required error={errors.message}>
+          <textarea
+            id={id('message')}
+            rows={5}
+            placeholder="Tell us how we can help. The more detail, the better the answer."
+            value={form.message}
+            onChange={(e) => update('message', e.target.value)}
+            className={cn(inputBase, 'resize-y min-h-[130px]', fieldBorder(errors.message))}
+          />
+        </Field>
+      </div>
+
+      <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        <p className="text-light-text-muted text-xs leading-relaxed max-w-sm">
+          We reply within a few hours on weekdays. Faster via WhatsApp.
+        </p>
+        <Button type="submit" size="lg" loading={submitting} className="sm:min-w-[200px]">
+          {submitting ? 'Sending…' : (
+            <>
+              <Send className="w-4 h-4 mr-1" aria-hidden="true" />
+              Send Message
+            </>
+          )}
+        </Button>
+      </div>
+    </form>
+  )
+}

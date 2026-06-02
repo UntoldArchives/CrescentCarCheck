@@ -1,0 +1,416 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: #0A0A0A;
+    color: #FFFFFF;
+    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background-color: #FFC600;
+    color: #0A0A0A;
+  }
+
+  :focus-visible {
+    outline: 2px solid #FFC600;
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  img {
+    display: block;
+    max-width: 100%;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  input, select, textarea, button {
+    font-family: inherit;
+    font-size: inherit;
+  }
+
+  input[type='date']::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+    opacity: 0.6;
+  }
+
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+  }
+}
+
+@layer components {
+  .section-padding {
+    @apply py-16 sm:py-20 md:py-24 lg:py-28;
+  }
+
+  .page-header {
+    @apply pt-24 pb-12 sm:pt-28 sm:pb-16 md:pt-32 md:pb-20;
+  }
+
+  .container-wide {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .container-narrow {
+    @apply max-w-5xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Skeleton loading shimmer */
+  .skeleton {
+    background: linear-gradient(90deg, #1A1A1A 25%, #242424 50%, #1A1A1A 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.8s linear infinite;
+    border-radius: 6px;
+  }
+
+  /* Dark input base */
+  .input-base {
+    @apply w-full bg-card border border-border rounded-input px-4 py-3 text-text-primary placeholder-text-muted transition-all duration-200;
+    @apply focus:outline-none focus:border-accent focus:shadow-input-focus;
+  }
+
+  .input-error-state {
+    @apply border-error shadow-input-error;
+  }
+
+  /* Section reveal animation — content is visible by default. Hiding only
+     kicks in after the gate script in <head> sets `js-anim-ready` on <html>.
+     If JS is blocked or fails to run, every section stays visible. */
+  html.js-anim-ready .reveal:not(.revealed) {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  .reveal {
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+  .reveal-delay-4 { transition-delay: 0.4s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.js-anim-ready .reveal:not(.revealed) {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .text-gradient-accent {
+    background: linear-gradient(135deg, #FFD93D 0%, #FFB000 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .border-gradient-accent {
+    border-image: linear-gradient(135deg, #FFD93D, #FFB000) 1;
+  }
+}
+
+/* react-datepicker dark theme override */
+.datepicker-dark .react-datepicker {
+  background-color: #1A1A1A;
+  border: 1px solid #2A2A2A;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+
+.datepicker-dark .react-datepicker__header {
+  background-color: #111111;
+  border-bottom: 1px solid #2A2A2A;
+  padding-top: 12px;
+}
+
+.datepicker-dark .react-datepicker__current-month,
+.datepicker-dark .react-datepicker-time__header {
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.datepicker-dark .react-datepicker__day-name {
+  color: #666666;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.datepicker-dark .react-datepicker__day {
+  color: #FFFFFF;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  font-size: 0.85rem;
+}
+
+.datepicker-dark .react-datepicker__day:hover {
+  background-color: rgba(255, 198, 0, 0.15);
+  color: #FFC600;
+}
+
+.datepicker-dark .react-datepicker__day--selected,
+.datepicker-dark .react-datepicker__day--keyboard-selected {
+  background-color: #FFC600 !important;
+  color: #0A0A0A !important;
+  font-weight: 700;
+}
+
+.datepicker-dark .react-datepicker__day--disabled {
+  color: #333333;
+  cursor: not-allowed;
+}
+
+.datepicker-dark .react-datepicker__day--disabled:hover {
+  background-color: transparent;
+  color: #333333;
+}
+
+.datepicker-dark .react-datepicker__navigation-icon::before {
+  border-color: #666666;
+}
+
+.datepicker-dark .react-datepicker__navigation:hover .react-datepicker__navigation-icon::before {
+  border-color: #FFC600;
+}
+
+.datepicker-dark .react-datepicker__month {
+  padding: 8px;
+}
+
+.datepicker-dark .react-datepicker-popper {
+  z-index: 100;
+}
+
+/* WhatsApp pulse animation */
+@keyframes whatsapp-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.4); }
+  70% { transform: scale(1); box-shadow: 0 0 0 16px rgba(37, 211, 102, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+}
+
+/* Trust bar marquee — scrolls continuously, pauses on hover */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 32s linear infinite;
+}
+
+.marquee-mask:hover .marquee-track,
+.marquee-track:focus-within {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+}
+
+/* ===== Hero: annotated-car card ===== */
+/*
+ * The card is a container, so every annotation sizes itself with `cqi`
+ * units (1cqi = 1% of the card's width). The whole composition scales
+ * proportionally from a phone to a desktop — it never gets cluttered,
+ * it just gets smaller.
+ */
+.hero-card {
+  container-type: inline-size;
+}
+
+.hero-card-glow {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: 80%;
+  height: 62%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse at center, rgba(255, 198, 0, 0.13), transparent 70%);
+  filter: blur(22px);
+  pointer-events: none;
+}
+
+/* Connector line — drawn via a normalised (pathLength="1") dash.
+   The SVG viewBox matches the card's 2:1 ratio, so scaling is uniform
+   and the dash draws cleanly from a full 0% to a full 100%.
+   Stroke width is in viewBox units (no non-scaling-stroke: it breaks
+   the pathLength dash maths). */
+.hero-line {
+  fill: none;
+  stroke: rgba(255, 198, 0, 0.6);
+  stroke-width: 0.33;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+}
+
+.hero-dot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: clamp(8px, 1cqi, 12px);
+  height: clamp(8px, 1cqi, 12px);
+  border-radius: 50%;
+  background: #ffc600;
+  box-shadow: 0 0 0 clamp(5px, 0.6cqi, 7px) rgba(255, 198, 0, 0.18);
+}
+
+/*
+ * Callout sizing uses clamp(min, fluid, max): it tracks the card width
+ * so the composition never crowds, but stays legible on a phone and
+ * never turns oversized on a wide desktop.
+ */
+.hero-callout {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 0.7cqi, 9px);
+  padding: clamp(6px, 0.8cqi, 10px);
+  border-radius: clamp(10px, 1.3cqi, 15px);
+  background: rgba(26, 26, 26, 0.94);
+  border: 1px solid #2a2a2a;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.hero-callout-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: clamp(30px, 3.3cqi, 42px);
+  height: clamp(30px, 3.3cqi, 42px);
+  border-radius: clamp(8px, 1cqi, 12px);
+  background: rgba(255, 198, 0, 0.1);
+  color: #ffc600;
+}
+
+.hero-callout-icon svg {
+  width: clamp(16px, 1.9cqi, 22px);
+  height: clamp(16px, 1.9cqi, 22px);
+}
+
+.hero-callout-label {
+  width: clamp(72px, 9cqi, 116px);
+  font-size: clamp(11px, 1.15cqi, 14px);
+  font-weight: 600;
+  line-height: 1.2;
+  color: #ffffff;
+}
+
+/* Phone-sized card: drop the text, keep a clean round icon marker so the
+   composition stays readable instead of cluttered. */
+@container (max-width: 500px) {
+  .hero-callout {
+    gap: 0;
+    padding: 5px;
+    border-radius: 50%;
+  }
+  .hero-callout-label {
+    display: none;
+  }
+  .hero-callout-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+  }
+  .hero-callout-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  /* Thicker in viewBox units so the line stays visible on a small card. */
+  .hero-line {
+    stroke-width: 0.8;
+  }
+}
+
+@keyframes hero-dot-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes hero-line-draw {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes hero-callout-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes hero-legend-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/*
+ * Annotated-car draw-on — the callouts animate in when the InspectionHighlights
+ * card scrolls into view (useReveal toggles `.revealed`). The annotations are
+ * hidden only while (a) the inline gate script has added `js-anim-ready` to
+ * <html> AND (b) the card has not yet been revealed; the car silhouette itself
+ * is always visible. If JS is blocked or the script never runs, `js-anim-ready`
+ * is never set, so the hidden state never applies and every annotation stays
+ * visible. Bug history: an earlier `animation-fill-mode: both` approach left
+ * content invisible whenever animations failed to start on a phone.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  html.js-anim-ready .annotated-card:not(.revealed) .hero-dot,
+  html.js-anim-ready .annotated-card:not(.revealed) .hero-line,
+  html.js-anim-ready .annotated-card:not(.revealed) .hero-callout,
+  html.js-anim-ready .annotated-card:not(.revealed) .hero-legend-item {
+    opacity: 0;
+  }
+  html.js-anim-ready .annotated-card.revealed .hero-dot {
+    animation: hero-dot-in 0.38s ease both;
+    animation-delay: calc(0.1s + var(--i) * 0.22s);
+  }
+  html.js-anim-ready .annotated-card.revealed .hero-line {
+    animation: hero-line-draw 0.6s ease-out both;
+    animation-delay: calc(0.27s + var(--i) * 0.22s);
+  }
+  html.js-anim-ready .annotated-card.revealed .hero-callout {
+    animation: hero-callout-in 0.46s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+    animation-delay: calc(0.85s + var(--i) * 0.22s);
+  }
+  /* Phone legend rows pop in alongside each marker, after the lines draw. */
+  html.js-anim-ready .annotated-card.revealed .hero-legend-item {
+    animation: hero-legend-in 0.4s ease both;
+    animation-delay: calc(0.9s + var(--i) * 0.18s);
+  }
+}
