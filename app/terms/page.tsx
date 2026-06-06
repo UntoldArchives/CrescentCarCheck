@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Terms of Service',
   description:
-    'The terms that govern your use of Crescent Car Checks and the pre-purchase vehicle inspections we provide across the UAE.',
+    'The terms that govern your use of Crescent Car Check and the pre-purchase vehicle inspections we provide across the UAE.',
 }
 
 const LAST_UPDATED = '1 June 2026'
@@ -12,13 +12,13 @@ const SECTIONS = [
   {
     heading: 'Acceptance of Terms',
     body: [
-      'By booking an inspection or using the Crescent Car Checks website, you agree to these terms of service. If you do not agree with them, please do not use our service.',
+      'By booking an inspection or using the Crescent Car Check website, you agree to these terms of service. If you do not agree with them, please do not use our service.',
     ],
   },
   {
     heading: 'Our Service',
     body: [
-      'Crescent Car Checks provides independent, visual pre-purchase inspections of used vehicles at the location you specify within the UAE. Our report reflects the condition of the vehicle as observed at the time of inspection and is intended to help you make an informed buying decision.',
+      'Crescent Car Check provides independent, visual pre-purchase inspections of used vehicles at the location you specify within the UAE. Our report reflects the condition of the vehicle as observed at the time of inspection and is intended to help you make an informed buying decision.',
     ],
   },
   {
@@ -54,7 +54,7 @@ const SECTIONS = [
   {
     heading: 'Contact Us',
     body: [
-      'For any questions about these terms, please contact us at hello@crescentcarchecks.com.',
+      'For any questions about these terms, please contact us at crescentcarcheck@gmail.com.',
     ],
   },
 ]

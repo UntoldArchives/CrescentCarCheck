@@ -10,7 +10,7 @@ import { PACKAGES } from '@/lib/packages'
 export const metadata: Metadata = {
   title: 'Inspection Packages & Pricing',
   description:
-    'Compare Crescent Car Checks inspection packages: Standard, Comprehensive and Premium. On-site inspection anywhere in the UAE with an instant digital report.',
+    'Compare Crescent Car Check inspection packages: Standard, Comprehensive and Premium. On-site inspection anywhere in the UAE with an instant digital report.',
 }
 
 const PACKAGE_FAQS: FAQItem[] = [

@@ -92,7 +92,7 @@ export function Navbar() {
           <div className="flex items-center justify-between h-16 md:h-20 gap-3">
             <Link
               href="/"
-              aria-label="Crescent Car Checks home"
+              aria-label="Crescent Car Check home"
               className="flex items-center -ml-1 flex-shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <Logo />
@@ -117,7 +117,7 @@ export function Navbar() {
             </nav>
 
             <Link
-              href="/checkout?package=comprehensive"
+              href="/packages"
               className="hidden lg:inline-flex bg-accent text-background font-semibold text-sm px-5 py-2.5 rounded-button hover:bg-accent-hover transition-colors duration-200"
             >
               Book Inspection
@@ -126,7 +126,7 @@ export function Navbar() {
             {/* Mobile / tablet: compact BOOK pill + hamburger */}
             <div className="flex items-center gap-2 lg:hidden">
               <Link
-                href="/checkout?package=comprehensive"
+                href="/packages"
                 className="inline-flex items-center bg-accent text-background font-semibold text-xs sm:text-sm px-3.5 sm:px-4 py-2 rounded-button hover:bg-accent-hover transition-colors duration-200 whitespace-nowrap"
               >
                 <span className="sm:hidden">Book</span>
@@ -155,7 +155,7 @@ export function Navbar() {
           className="fixed inset-0 z-50 bg-background flex flex-col animate-slide-in-right lg:hidden"
         >
           <div className="flex items-center justify-between h-16 px-4 border-b border-border">
-            <Link href="/" onClick={() => setMobileOpen(false)} aria-label="Crescent Car Checks home">
+            <Link href="/" onClick={() => setMobileOpen(false)} aria-label="Crescent Car Check home">
               <Logo />
             </Link>
             <button
@@ -192,7 +192,7 @@ export function Navbar() {
 
           <div className="p-6 border-t border-border">
             <Link
-              href="/checkout?package=comprehensive"
+              href="/packages"
               onClick={() => setMobileOpen(false)}
               className="flex items-center justify-center w-full bg-accent text-background font-semibold py-4 rounded-button hover:bg-accent-hover transition-colors duration-200"
             >

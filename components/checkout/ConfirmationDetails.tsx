@@ -1,8 +1,8 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { PACKAGES } from '@/lib/packages'
-import type { PackageId } from '@/types/booking'
+import { PACKAGES, travelFeeForEmirate } from '@/lib/packages'
+import type { Emirate, PackageId } from '@/types/booking'
 
 function isValidPackageId(s: string): s is PackageId {
   return s === 'standard' || s === 'comprehensive' || s === 'premium'
@@ -13,6 +13,12 @@ export function ConfirmationDetails() {
   const id = search.get('id')
   const pkgParam = search.get('package') ?? ''
   const pkg = isValidPackageId(pkgParam) ? PACKAGES.find((p) => p.id === pkgParam) : undefined
+
+  // travelFeeForEmirate guards with an includes() check, so an unknown value
+  // from the query string safely yields a 0 fee.
+  const emirate = (search.get('emirate') ?? '') as Emirate | ''
+  const travelFee = pkg ? travelFeeForEmirate(emirate) : 0
+  const total = pkg ? pkg.price + travelFee : 0
 
   if (!id && !pkg) return null
 
@@ -38,7 +44,10 @@ export function ConfirmationDetails() {
             Package
           </p>
           <p className="text-text-primary font-semibold text-sm mt-0.5">
-            {pkg.name} · AED {pkg.price}
+            {pkg.name} · AED {total}
+            {travelFee > 0 ? (
+              <span className="text-text-muted font-normal"> (incl. AED {travelFee} travel)</span>
+            ) : null}
           </p>
         </div>
       )}

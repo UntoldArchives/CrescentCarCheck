@@ -13,33 +13,33 @@ interface Feature {
 
 const FEATURES: Feature[] = [
   {
-    icon: '/logos/underbody.png',
+    icon: '/why-us/underbody.png',
     title: "Underbody Access Other Companies Can't Always Offer",
     text: 'Not every inspection company can properly lift low-clearance vehicles on-site. Our specialised custom low-approach race ramps allow us to safely lift any car, from everyday SUVs to luxury sports cars, so we can properly inspect underneath for leaks, scraping, damage and repair signs.',
     featured: true,
   },
   {
-    icon: '/logos/customer-service.png',
+    icon: '/why-us/customer-service.png',
     title: 'Customer Service That Works Hard for You',
     text: 'Buying a used car can be stressful. We make the process simple, responsive and clear — from booking the inspection to helping you understand the findings.',
   },
   {
-    icon: '/logos/independent.png',
+    icon: '/why-us/independent.png',
     title: 'Independent Buyer-Focused Inspections',
     text: 'We work for you, not the seller. Our job is to give you an honest view of the car before you commit, without pressure or bias.',
   },
   {
-    icon: '/logos/uae-market.png',
+    icon: '/why-us/uae-market.png',
     title: 'Built for the UAE Used-Car Market',
     text: 'We understand the risks buyers face in the UAE — resprayed panels, imported cars, accident repairs, heat-related wear, AC issues, weak batteries, worn tyres and cleared fault codes.',
   },
   {
-    icon: '/logos/evidence.png',
+    icon: '/why-us/evidence.png',
     title: 'Clear Evidence, Not Vague Opinions',
     text: 'We show you what we find with photos, readings and clear notes, so you are not relying on a vague "good condition" or "bad condition" opinion.',
   },
   {
-    icon: '/logos/findings.png',
+    icon: '/why-us/findings.png',
     title: 'Clear Findings, Explained Properly',
     text: "We don't just send a confusing checklist and leave you to figure it out. Our reports are written clearly, with photos of visible faults, and our team helps you understand the key findings so you can decide whether to buy, negotiate or walk away.",
   },

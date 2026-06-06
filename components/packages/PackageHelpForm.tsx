@@ -10,17 +10,19 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { VehicleSelector } from '@/components/checkout/VehicleSelector'
 import { cn } from '@/lib/utils'
 import { trackEvent, GA_EVENTS } from '@/lib/analytics'
 
 const EMIRATES = [
   'Dubai',
-  'Abu Dhabi',
   'Sharjah',
   'Ajman',
+  'Umm Al Quwain',
+  'Abu Dhabi',
+  'Al Ain',
   'Ras Al Khaimah',
   'Fujairah',
-  'Umm Al Quwain',
 ] as const
 
 const REASONS = [
@@ -30,7 +32,7 @@ const REASONS = [
   'Other',
 ] as const
 
-const WHATSAPP = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '971500000000'
+const WHATSAPP = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '971502526314'
 
 type Form = {
   name: string
@@ -84,7 +86,7 @@ function validate(form: Form): Errors {
 
 function buildWhatsAppText(f: Form): string {
   const lines = [
-    `Hi Crescent Car Checks, I need help choosing the right inspection.`,
+    `Hi Crescent Car Check, I need help choosing the right inspection.`,
     ``,
     `Name: ${f.name}`,
     `Phone: ${f.phone}`,
@@ -146,6 +148,17 @@ export function PackageHelpForm() {
   const update = <K extends keyof Form>(key: K, value: Form[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }))
+  }
+
+  // The shared VehicleSelector emits a patch (it can clear the model when the
+  // make changes), so merge the whole object and clear any touched errors.
+  const updateVehicle = (patch: { carMake?: string; carModel?: string; carYear?: string }) => {
+    setForm((prev) => ({ ...prev, ...patch }))
+    setErrors((prev) => {
+      const next = { ...prev }
+      for (const k of Object.keys(patch) as (keyof Form)[]) delete next[k]
+      return next
+    })
   }
 
   const onSubmit = (e: React.FormEvent) => {
@@ -294,41 +307,6 @@ export function PackageHelpForm() {
                       </select>
                     </Field>
 
-                    <Field id={fid('carMake')} label="Car make" required error={errors.carMake}>
-                      <input
-                        id={fid('carMake')}
-                        type="text"
-                        placeholder="Toyota"
-                        value={form.carMake}
-                        onChange={(e) => update('carMake', e.target.value)}
-                        className={cn(inputBase, errors.carMake ? 'border-error' : 'border-light-border')}
-                      />
-                    </Field>
-
-                    <Field id={fid('carModel')} label="Model" required error={errors.carModel}>
-                      <input
-                        id={fid('carModel')}
-                        type="text"
-                        placeholder="Land Cruiser"
-                        value={form.carModel}
-                        onChange={(e) => update('carModel', e.target.value)}
-                        className={cn(inputBase, errors.carModel ? 'border-error' : 'border-light-border')}
-                      />
-                    </Field>
-
-                    <Field id={fid('carYear')} label="Year" required error={errors.carYear}>
-                      <input
-                        id={fid('carYear')}
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="2020"
-                        maxLength={4}
-                        value={form.carYear}
-                        onChange={(e) => update('carYear', e.target.value.replace(/\D/g, ''))}
-                        className={cn(inputBase, errors.carYear ? 'border-error' : 'border-light-border')}
-                      />
-                    </Field>
-
                     <Field id={fid('reason')} label="Reason for contacting" required>
                       <select
                         id={fid('reason')}
@@ -347,6 +325,22 @@ export function PackageHelpForm() {
                         ))}
                       </select>
                     </Field>
+                  </div>
+
+                  <div className="mt-4">
+                    <p className="text-light-text font-bold text-sm mb-2">Vehicle</p>
+                    <VehicleSelector
+                      idPrefix={baseId}
+                      make={form.carMake}
+                      model={form.carModel}
+                      year={form.carYear}
+                      errors={{
+                        carMake: errors.carMake,
+                        carModel: errors.carModel,
+                        carYear: errors.carYear,
+                      }}
+                      onChange={updateVehicle}
+                    />
                   </div>
 
                   <div className="mt-4">
@@ -382,7 +376,7 @@ export function PackageHelpForm() {
                       Ask Which Package Fits
                     </Button>
                     <a
-                      href={`tel:${process.env.NEXT_PUBLIC_BUSINESS_PHONE || '+971500000000'}`}
+                      href={`tel:${process.env.NEXT_PUBLIC_BUSINESS_PHONE || '+971 502526314'}`}
                       className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-light-text-secondary hover:text-light-text transition-colors duration-150"
                     >
                       <Phone className="w-4 h-4" aria-hidden="true" />

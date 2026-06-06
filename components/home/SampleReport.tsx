@@ -60,8 +60,8 @@ export function SampleReport() {
           </ul>
 
           <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
-            <ButtonLink href="/checkout?package=comprehensive" size="lg" arrow>
-              Book to Get Your Report
+            <ButtonLink href="/sample-report" size="lg" arrow>
+              View Sample Report
             </ButtonLink>
             <Link
               href="/packages"
@@ -83,7 +83,7 @@ export function SampleReport() {
             <div className="bg-background text-text-primary px-5 sm:px-6 py-4 flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[10px] tracking-[0.18em] text-accent font-semibold truncate">
-                  CRESCENT CAR CHECKS
+                  CRESCENT CAR CHECK
                 </p>
                 <p className="font-bold text-sm sm:text-base mt-0.5 truncate">Vehicle Inspection Report</p>
               </div>

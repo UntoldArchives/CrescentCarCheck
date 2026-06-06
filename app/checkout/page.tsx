@@ -6,7 +6,7 @@ import { CheckoutForm } from '@/components/checkout/CheckoutForm'
 export const metadata: Metadata = {
   title: 'Book Your Inspection',
   description:
-    'Book a Crescent Car Checks pre-purchase inspection. Tell us about the car, where it is, and when you want us there.',
+    'Book a Crescent Car Check pre-purchase inspection. Tell us about the car, where it is, and when you want us there.',
 }
 
 export default function CheckoutPage() {

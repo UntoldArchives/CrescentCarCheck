@@ -1,9 +1,8 @@
 import { BookingFormData, BookingFormErrors } from '@/types/booking'
 
-/** Earliest acceptable booking date (tomorrow) as a local yyyy-mm-dd string. */
-function tomorrowISO(): string {
+/** Earliest acceptable booking date (today) as a local yyyy-mm-dd string. */
+function todayISO(): string {
   const d = new Date()
-  d.setDate(d.getDate() + 1)
   const tz = d.getTimezoneOffset() * 60000
   return new Date(d.getTime() - tz).toISOString().slice(0, 10)
 }
@@ -50,8 +49,8 @@ export function validateForm(form: BookingFormData): BookingFormErrors {
 
   if (!form.preferredDate) {
     errors.preferredDate = 'Please choose a preferred date'
-  } else if (form.preferredDate < tomorrowISO()) {
-    errors.preferredDate = 'Please choose a date from tomorrow onwards'
+  } else if (form.preferredDate < todayISO()) {
+    errors.preferredDate = 'Please choose today or a future date'
   }
   if (!form.preferredWindow) errors.preferredWindow = 'Please choose a preferred time window'
 

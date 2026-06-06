@@ -1,20 +1,24 @@
 import { NextResponse } from 'next/server'
+import { notifyContactMessage } from '@/lib/email'
 
 interface ContactPayload {
   name?: string
   email?: string
   phone?: string
   topic?: string
+  carMake?: string
+  carModel?: string
+  carYear?: string
   message?: string
 }
 
 /**
- * Stub contact form handler. Mirrors the eventual live shape:
+ * Contact form handler.
  *  1. Validate input
- *  2. (later) Forward to internal Slack / email via Resend
+ *  2. Forward to the owner inbox via Resend (best-effort, env-gated)
  *
- * Currently logs and returns success. Swap the body when the client provisions
- * Resend (or another transactional sender).
+ * Returns success once the message is accepted. While Resend isn't configured,
+ * notifyContactMessage() logs and no-ops, so the form works in every environment.
  */
 export async function POST(req: Request) {
   let body: ContactPayload
@@ -36,11 +40,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: 'Please write a longer message' }, { status: 422 })
   }
 
-  console.log('[contact:stub] received message', {
+  await notifyContactMessage({
     name,
     email,
-    topic: body.topic ?? 'unspecified',
-    messageLength: message.length,
+    phone: body.phone?.trim(),
+    topic: body.topic?.trim(),
+    carMake: body.carMake?.trim() || undefined,
+    carModel: body.carModel?.trim() || undefined,
+    carYear: body.carYear?.trim() || undefined,
+    message,
   })
 
   return NextResponse.json({ ok: true })

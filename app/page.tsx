@@ -28,20 +28,20 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(getLocalBusinessSchema()) }}
       />
       <HeroSection />
+      <TrustBar />
+      <InspectionHighlights />
       <PackagesSection />
       <HowItWorks />
       <WhyInspectionMatters />
-      <TrustBar />
-      <InspectionHighlights />
       <SampleReport />
+      <WhyChooseUs />
       <section className="bg-light-bg section-padding">
         <div className="container-wide">
           <ComparisonTable topSpacing={false} />
         </div>
       </section>
-      <WhyChooseUs />
-      <RecentlyInspected />
       <Testimonials />
+      <RecentlyInspected />
       <FAQ />
       <CTABanner />
     </>

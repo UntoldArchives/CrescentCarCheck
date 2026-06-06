@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Cog,
   Lightbulb,
@@ -37,6 +37,26 @@ const CALLOUTS = [
   { id: 'tyres', label: 'Tyres & Wheels', Icon: LifeBuoy, car: [140, 68], box: [174, 89] },
 ] as const
 
+/*
+ * Below `sm` (640px) the card switches from a 2:1 box to a taller 3:2 / 4:3
+ * one, but the SVG viewBox stays 2:1 (preserveAspectRatio="none"). That
+ * vertically compresses where the car silhouette actually sits (it spans
+ * ~21–60% of the card height instead of ~21–79%), so every anchor's fixed
+ * `y` drifts below its intended feature. These mobile-only `car` coordinates
+ * lift each anchor back onto the same relative point on the car. Only `y`
+ * changes — the car's horizontal position is the same at every breakpoint.
+ */
+const MOBILE_CAR: Record<string, readonly [number, number]> = {
+  lights: [51, 47],
+  engine: [54, 43],
+  brakes: [63, 45],
+  roof: [101, 32],
+  glass: [114, 36],
+  paint: [107, 44],
+  suspension: [140, 44],
+  tyres: [140, 53],
+}
+
 /** viewBox coordinate → CSS percentage for HTML-positioned elements. */
 const pctX = (x: number) => `${(x / VIEW_W) * 100}%`
 const pctY = (y: number) => `${(y / VIEW_H) * 100}%`
@@ -46,6 +66,22 @@ type CssVars = React.CSSProperties & { '--i'?: number }
 export function InspectionHighlights() {
   const headingRef = useReveal<HTMLDivElement>()
   const cardRef = useRef<HTMLDivElement>(null)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Track the sub-`sm` range where the card is taller than 2:1, so the
+  // rear anchors can be lifted onto the car (see MOBILE_CAR).
+  useEffect(() => {
+    if (typeof matchMedia === 'undefined') return
+    const mq = matchMedia('(max-width: 639px)')
+    const update = () => setIsMobile(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+
+  const callouts = CALLOUTS.map((c) =>
+    isMobile && MOBILE_CAR[c.id] ? { ...c, car: MOBILE_CAR[c.id] } : c
+  )
 
   // Trigger the draw-on animation only once the card is genuinely scrolled into
   // view. A dedicated observer (rather than useReveal) is used deliberately: the
@@ -70,13 +106,13 @@ export function InspectionHighlights() {
   }, [])
 
   return (
-    <section className="bg-background section-padding">
+    <section className="bg-light-bg section-padding">
       <div className="container-wide">
         <div ref={headingRef} className="reveal text-center max-w-2xl mx-auto mb-10 md:mb-12">
-          <h2 className="text-display-sm md:text-display-md font-bold text-text-primary">
+          <h2 className="text-display-sm md:text-display-md font-bold text-light-text">
             A Full Inspection, Inside and Out
           </h2>
-          <p className="text-text-secondary leading-relaxed mt-4">
+          <p className="text-light-text-secondary leading-relaxed mt-4">
             Every major system, checked and documented — here&apos;s what we cover on
             each car, from the engine bay to the underbody.
           </p>
@@ -84,7 +120,7 @@ export function InspectionHighlights() {
 
         {/* Annotated car + (on phones) a legend — both draw on when scrolled into view */}
         <div ref={cardRef} className="annotated-card">
-          <div className="hero-card relative w-full aspect-[4/3] xs:aspect-[3/2] sm:aspect-[2/1] rounded-card-lg border border-border bg-surface overflow-hidden">
+          <div className="hero-card relative w-full aspect-[4/3] xs:aspect-[3/2] sm:aspect-[2/1] rounded-card-lg border border-light-border bg-light-card overflow-hidden">
             <div className="hero-card-glow" aria-hidden="true" />
 
             {/* Car */}
@@ -106,9 +142,10 @@ export function InspectionHighlights() {
             <svg
               className="absolute inset-0 w-full h-full z-20"
               viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+              preserveAspectRatio="none"
               aria-hidden="true"
             >
-              {CALLOUTS.map((c, i) => (
+              {callouts.map((c, i) => (
                 <line
                   key={c.id}
                   className="hero-line"
@@ -123,7 +160,7 @@ export function InspectionHighlights() {
             </svg>
 
             {/* Anchor dots */}
-            {CALLOUTS.map((c, i) => (
+            {callouts.map((c, i) => (
               <div
                 key={c.id}
                 className="hero-dot z-30"
@@ -159,7 +196,7 @@ export function InspectionHighlights() {
                 <span className="w-8 h-8 rounded-lg bg-accent/10 grid place-items-center flex-shrink-0">
                   <c.Icon className="w-4 h-4 text-accent" aria-hidden="true" />
                 </span>
-                <span className="text-sm font-medium text-text-primary leading-tight">{c.label}</span>
+                <span className="text-sm font-medium text-light-text leading-tight">{c.label}</span>
               </li>
             ))}
           </ul>

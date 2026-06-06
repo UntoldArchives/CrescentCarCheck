@@ -14,9 +14,9 @@ const STEPS = [
   {
     num: '02',
     Icon: Calendar,
-    title: 'Book Your Slot',
+    title: 'Book & Pay Online',
     description:
-      "Select your preferred date, time slot, and share the car's exact location. We come to you.",
+      "Pick your date and time window, share the car's exact location, and pay securely online. We come to you.",
   },
   {
     num: '03',
@@ -31,7 +31,7 @@ export function HowItWorks() {
   const ref = useReveal<HTMLDivElement>()
 
   return (
-    <section id="how-it-works" className="bg-surface section-padding relative">
+    <section id="how-it-works" className="bg-surface section-padding relative scroll-mt-24">
       <div className="absolute inset-0 bg-gradient-noise opacity-50 pointer-events-none" aria-hidden="true" />
       <div ref={ref} className="reveal container-wide relative">
         <div className="max-w-2xl">

@@ -7,12 +7,12 @@ import { CTABanner } from '@/components/home/CTABanner'
 export const metadata: Metadata = {
   title: 'Contact Us',
   description:
-    'Get in touch with Crescent Car Checks. WhatsApp, phone, email, or fill in the form — we reply quickly across the UAE.',
+    'Get in touch with Crescent Car Check. WhatsApp, phone, email, or fill in the form — we reply quickly across the UAE.',
 }
 
-const BUSINESS_PHONE = process.env.NEXT_PUBLIC_BUSINESS_PHONE || '+971500000000'
-const BUSINESS_EMAIL = process.env.NEXT_PUBLIC_BUSINESS_EMAIL || 'hello@crescentcarchecks.ae'
-const WHATSAPP = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '971500000000'
+const BUSINESS_PHONE = process.env.NEXT_PUBLIC_BUSINESS_PHONE || '+971 502526314'
+const BUSINESS_EMAIL = process.env.NEXT_PUBLIC_BUSINESS_EMAIL || 'crescentcarcheck@gmail.com'
+const WHATSAPP = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '971502526314'
 
 const CONTACT_METHODS = [
   {

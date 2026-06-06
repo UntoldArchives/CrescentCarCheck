@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Search, MapPin, Loader2 } from 'lucide-react'
-import type { Map as LeafletMap, Marker as LeafletMarker } from 'leaflet'
+import { Loader } from '@googlemaps/js-api-loader'
 
 type Coords = { lat: number; lng: number }
 
@@ -16,151 +16,140 @@ interface LocationMapProps {
 }
 
 const UAE_CENTER: Coords = { lat: 25.2048, lng: 55.2708 } // Downtown Dubai
-const UAE_BOUNDS: [[number, number], [number, number]] = [
-  [22.5, 51.4], // SW
-  [26.4, 56.4], // NE
-]
+// Keep panning/zoom inside the UAE so the picker stays on-region.
+const UAE_BOUNDS = { north: 26.4, south: 22.5, east: 56.4, west: 51.4 }
 
-type NominatimResult = {
-  lat: string
-  lon: string
-  display_name: string
-  place_id: number
-}
+const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''
 
-async function geocode(query: string): Promise<NominatimResult[]> {
-  const url = new URL('https://nominatim.openstreetmap.org/search')
-  url.searchParams.set('format', 'json')
-  url.searchParams.set('q', query)
-  url.searchParams.set('countrycodes', 'ae')
-  url.searchParams.set('limit', '6')
-  url.searchParams.set('addressdetails', '0')
-  try {
-    const res = await fetch(url.toString(), {
-      headers: { 'Accept-Language': 'en' },
-    })
-    if (!res.ok) return []
-    return (await res.json()) as NominatimResult[]
-  } catch {
-    return []
-  }
-}
+// Custom accent teardrop pin (matches the brand yellow + black).
+const PIN_URL =
+  'data:image/svg+xml;charset=UTF-8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40">' +
+      '<path d="M16 0C7.7 0 1 6.7 1 15c0 9.5 13 23.5 13.6 24.1a1 1 0 0 0 1.4 0C16.9 38.5 31 24.5 31 15 31 6.7 24.3 0 16 0z" fill="#FFC600" stroke="#000" stroke-width="2"/>' +
+      '<circle cx="16" cy="15" r="5" fill="#000"/>' +
+      '</svg>'
+  )
 
-async function reverseGeocode(lat: number, lng: number): Promise<string> {
-  const url = new URL('https://nominatim.openstreetmap.org/reverse')
-  url.searchParams.set('format', 'json')
-  url.searchParams.set('lat', String(lat))
-  url.searchParams.set('lon', String(lng))
-  url.searchParams.set('zoom', '17')
-  try {
-    const res = await fetch(url.toString(), {
-      headers: { 'Accept-Language': 'en' },
-    })
-    if (!res.ok) return ''
-    const data = (await res.json()) as { display_name?: string }
-    return data.display_name ?? ''
-  } catch {
-    return ''
-  }
+/** A normalised search prediction backed by a Google place prediction. */
+type Prediction = {
+  id: string
+  label: string
+  place: google.maps.places.PlacePrediction
 }
 
 export function LocationMap({ initialCoords, onChange, className }: LocationMapProps) {
   const mapElRef = useRef<HTMLDivElement | null>(null)
-  const mapRef = useRef<LeafletMap | null>(null)
-  const markerRef = useRef<LeafletMarker | null>(null)
+  const mapRef = useRef<google.maps.Map | null>(null)
+  const markerRef = useRef<google.maps.Marker | null>(null)
+  const geocoderRef = useRef<google.maps.Geocoder | null>(null)
+  // Session token groups autocomplete keystrokes + the final pick into one
+  // billable session; it's regenerated after each selection.
+  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null)
+  const onChangeRef = useRef(onChange)
 
   const [ready, setReady] = useState(false)
+  // No key (or a failed load) → hide the map; the address textarea below still
+  // lets the customer give their location, so booking is never blocked.
+  const [unavailable, setUnavailable] = useState(!API_KEY)
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<NominatimResult[]>([])
+  const [results, setResults] = useState<Prediction[]>([])
   const [searching, setSearching] = useState(false)
   const [showResults, setShowResults] = useState(false)
 
+  // Keep the latest onChange in a ref so the map setup effect stays mount-once.
+  useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
+
+  // Reverse-geocode a dropped/clicked pin to a human address, then notify.
+  const emitFromLatLng = useCallback(
+    async (lat: number, lng: number, recenter: boolean) => {
+      if (recenter && mapRef.current) mapRef.current.panTo({ lat, lng })
+      let address = ''
+      try {
+        const res = await geocoderRef.current?.geocode({ location: { lat, lng } })
+        address = res?.results[0]?.formatted_address ?? ''
+      } catch {
+        address = ''
+      }
+      onChangeRef.current?.({ lat, lng }, address)
+    },
+    [],
+  )
+
   // Mount the map once on first client render.
   useEffect(() => {
+    if (!API_KEY) return
     let cancelled = false
-    let map: LeafletMap | null = null
+
+    const loader = new Loader({ apiKey: API_KEY, version: 'weekly' })
 
     ;(async () => {
-      const L = await import('leaflet')
-      await import('leaflet/dist/leaflet.css')
-      if (cancelled || !mapElRef.current) return
+      try {
+        await loader.importLibrary('maps')
+        await loader.importLibrary('marker')
+        await loader.importLibrary('places')
+        await loader.importLibrary('geocoding')
+        if (cancelled || !mapElRef.current) return
 
-      const start = initialCoords ?? UAE_CENTER
-      map = L.map(mapElRef.current, {
-        zoomControl: true,
-        scrollWheelZoom: false,
-        maxBounds: UAE_BOUNDS,
-        maxBoundsViscosity: 0.7,
-      }).setView([start.lat, start.lng], 13)
+        const start = initialCoords ?? UAE_CENTER
+        const map = new google.maps.Map(mapElRef.current, {
+          center: start,
+          zoom: 13,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+          clickableIcons: false,
+          gestureHandling: 'cooperative',
+          restriction: { latLngBounds: UAE_BOUNDS, strictBounds: false },
+        })
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-        maxZoom: 18,
-        minZoom: 8,
-      }).addTo(map)
+        const marker = new google.maps.Marker({
+          map,
+          position: start,
+          draggable: true,
+          icon: {
+            url: PIN_URL,
+            scaledSize: new google.maps.Size(32, 40),
+            anchor: new google.maps.Point(16, 40),
+          },
+        })
 
-      const pinHtml = `
-        <div style="
-          width: 32px; height: 32px;
-          background: #FFC600;
-          border: 3px solid #000;
-          border-radius: 50% 50% 50% 0;
-          transform: rotate(-45deg);
-          box-shadow: 0 4px 10px rgba(0,0,0,0.35);
-          display: grid; place-items: center;
-        ">
-          <div style="
-            width: 10px; height: 10px;
-            background: #000; border-radius: 50%;
-            transform: rotate(45deg);
-          "></div>
-        </div>
-      `
-      const accentIcon = L.divIcon({
-        html: pinHtml,
-        className: 'crescent-pin',
-        iconSize: [32, 32],
-        iconAnchor: [16, 32],
-      })
+        marker.addListener('dragend', () => {
+          const pos = marker.getPosition()
+          if (pos) void emitFromLatLng(pos.lat(), pos.lng(), false)
+        })
+        map.addListener('click', (e: google.maps.MapMouseEvent) => {
+          if (!e.latLng) return
+          marker.setPosition(e.latLng)
+          void emitFromLatLng(e.latLng.lat(), e.latLng.lng(), false)
+        })
 
-      const marker = L.marker([start.lat, start.lng], {
-        draggable: true,
-        icon: accentIcon,
-      }).addTo(map)
-
-      marker.on('dragend', async () => {
-        const pos = marker.getLatLng()
-        const addr = await reverseGeocode(pos.lat, pos.lng)
-        onChange?.({ lat: pos.lat, lng: pos.lng }, addr)
-      })
-
-      map.on('click', async (e) => {
-        marker.setLatLng(e.latlng)
-        const addr = await reverseGeocode(e.latlng.lat, e.latlng.lng)
-        onChange?.({ lat: e.latlng.lat, lng: e.latlng.lng }, addr)
-      })
-
-      mapRef.current = map
-      markerRef.current = marker
-      setReady(true)
+        mapRef.current = map
+        markerRef.current = marker
+        geocoderRef.current = new google.maps.Geocoder()
+        sessionTokenRef.current = new google.maps.places.AutocompleteSessionToken()
+        setReady(true)
+      } catch {
+        if (!cancelled) setUnavailable(true)
+      }
     })()
 
     return () => {
       cancelled = true
-      if (map) {
-        map.remove()
-        mapRef.current = null
-        markerRef.current = null
-      }
+      mapRef.current = null
+      markerRef.current = null
+      geocoderRef.current = null
     }
-    // Intentionally only mount once; onChange/initialCoords updates handled elsewhere.
+    // Mount once; live updates flow through refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Debounced search. All state updates run inside a timer (never synchronously
-  // in the effect body) so a short/empty query clears results without triggering
-  // a cascading render warning.
+  // Debounced autocomplete via the Places (New) suggestions API. All state
+  // updates run inside the timer so a short/empty query clears cleanly.
   useEffect(() => {
+    if (unavailable) return
     const q = query.trim()
     if (q.length < 3) {
       const clear = setTimeout(() => {
@@ -171,23 +160,61 @@ export function LocationMap({ initialCoords, onChange, className }: LocationMapP
     }
     const handle = setTimeout(async () => {
       setSearching(true)
-      const found = await geocode(q)
-      setResults(found)
-      setSearching(false)
-      setShowResults(true)
+      try {
+        const { suggestions } =
+          await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+            input: q,
+            includedRegionCodes: ['ae'],
+            language: 'en',
+            sessionToken: sessionTokenRef.current ?? undefined,
+          })
+        const mapped: Prediction[] = suggestions
+          .map((s) => s.placePrediction)
+          .filter((p): p is google.maps.places.PlacePrediction => p != null)
+          .map((p) => ({ id: p.placeId, label: p.text.text, place: p }))
+        setResults(mapped)
+        setShowResults(true)
+      } catch {
+        setResults([])
+      } finally {
+        setSearching(false)
+      }
     }, 350)
     return () => clearTimeout(handle)
-  }, [query])
+  }, [query, unavailable])
 
-  const selectResult = (r: NominatimResult) => {
-    const lat = parseFloat(r.lat)
-    const lng = parseFloat(r.lon)
-    if (!mapRef.current || !markerRef.current) return
-    mapRef.current.setView([lat, lng], 16)
-    markerRef.current.setLatLng([lat, lng])
-    setQuery(r.display_name)
+  const selectResult = async (r: Prediction) => {
     setShowResults(false)
-    onChange?.({ lat, lng }, r.display_name)
+    try {
+      const place = r.place.toPlace()
+      await place.fetchFields({ fields: ['location', 'formattedAddress'] })
+      const loc = place.location
+      if (!loc || !markerRef.current || !mapRef.current) return
+      const lat = loc.lat()
+      const lng = loc.lng()
+      const address = place.formattedAddress ?? r.label
+      markerRef.current.setPosition({ lat, lng })
+      mapRef.current.panTo({ lat, lng })
+      mapRef.current.setZoom(16)
+      setQuery(address)
+      onChangeRef.current?.({ lat, lng }, address)
+    } finally {
+      // New token for the next search session.
+      sessionTokenRef.current = new google.maps.places.AutocompleteSessionToken()
+    }
+  }
+
+  // No API key configured: skip the map entirely (the address field still works).
+  if (unavailable && !ready) {
+    return (
+      <div className={className}>
+        <p className="text-light-text-muted text-xs flex items-start gap-1.5">
+          <MapPin className="w-3.5 h-3.5 text-accent mt-0.5 flex-shrink-0" aria-hidden="true" />
+          Enter your address below — we&apos;ll confirm the exact spot with you before the
+          inspection.
+        </p>
+      </div>
+    )
   }
 
   return (
@@ -231,7 +258,7 @@ export function LocationMap({ initialCoords, onChange, className }: LocationMapP
             role="listbox"
           >
             {results.map((r) => (
-              <li key={r.place_id}>
+              <li key={r.id}>
                 <button
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
@@ -242,7 +269,7 @@ export function LocationMap({ initialCoords, onChange, className }: LocationMapP
                   "
                 >
                   <MapPin className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" aria-hidden="true" />
-                  <span className="leading-snug">{r.display_name}</span>
+                  <span className="leading-snug">{r.label}</span>
                 </button>
               </li>
             ))}

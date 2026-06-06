@@ -2,7 +2,7 @@ export function getLocalBusinessSchema() {
   return {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
-    name: 'Crescent Car Checks',
+    name: 'Crescent Car Check',
     description: 'Professional pre-purchase car inspection service across the UAE.',
     url: process.env.NEXT_PUBLIC_APP_URL,
     telephone: process.env.NEXT_PUBLIC_BUSINESS_PHONE,
@@ -12,8 +12,8 @@ export function getLocalBusinessSchema() {
       addressCountry: 'AE',
       addressRegion: 'Sharjah',
     },
-    areaServed: ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Fujairah', 'Umm Al Quwain'],
-    priceRange: 'AED 249 to AED 449',
+    areaServed: ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Fujairah', 'Umm Al Quwain', 'Al Ain'],
+    priceRange: 'AED 249 to AED 549',
     openingHours: 'Mo-Su 09:00-20:00',
     hasOfferCatalog: {
       '@type': 'OfferCatalog',

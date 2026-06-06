@@ -17,7 +17,9 @@ function BrandMark({ brand }: { brand: BrandPath }) {
         alt={`${brand.name} logo`}
         loading="lazy"
         onError={() => setImgFailed(true)}
-        className="h-7 sm:h-9 w-auto max-w-[80%] object-contain [filter:brightness(0)_invert(1)]"
+        className={`h-7 sm:h-9 w-auto max-w-[80%] object-contain ${
+          brand.imageFilter ?? '[filter:brightness(0)_invert(1)]'
+        }`}
       />
     )
   }
@@ -29,6 +31,7 @@ function BrandMark({ brand }: { brand: BrandPath }) {
         role="img"
         aria-label={`${brand.name} logo`}
         className="h-7 sm:h-9 w-auto"
+        style={brand.scale ? { transform: `scale(${brand.scale})` } : undefined}
       >
         <path d={brand.path} />
       </svg>
@@ -91,7 +94,7 @@ export function BrandsCovered() {
 
         <p className="text-text-muted text-xs mt-6 max-w-2xl leading-relaxed">
           Brand names and logos are trademarks of their respective owners and are
-          shown here solely to indicate the vehicles we inspect. Crescent Car Checks
+          shown here solely to indicate the vehicles we inspect. Crescent Car Check
           is independent and is not affiliated with, endorsed by, or a partner of
           any vehicle manufacturer listed above.
         </p>

@@ -5,6 +5,7 @@ import { Send, CheckCircle2, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Field, inputBase, selectClass, selectChevronStyle, fieldBorder } from '@/components/ui/Field'
 import { Button } from '@/components/ui/Button'
+import { VehicleSelector } from '@/components/checkout/VehicleSelector'
 import { trackEvent, GA_EVENTS } from '@/lib/analytics'
 
 const TOPICS = [
@@ -21,6 +22,9 @@ type Form = {
   email: string
   phone: string
   topic: string
+  carMake: string
+  carModel: string
+  carYear: string
   message: string
 }
 
@@ -31,6 +35,9 @@ const EMPTY: Form = {
   email: '',
   phone: '',
   topic: TOPICS[0],
+  carMake: '',
+  carModel: '',
+  carYear: '',
   message: '',
 }
 
@@ -66,6 +73,12 @@ export function ContactForm() {
   const update = <K extends keyof Form>(key: K, value: Form[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }))
+  }
+
+  // The shared VehicleSelector emits a patch (it can clear model when make
+  // changes), so merge the whole object rather than a single key.
+  const updateVehicle = (patch: { carMake?: string; carModel?: string; carYear?: string }) => {
+    setForm((prev) => ({ ...prev, ...patch }))
   }
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -201,6 +214,25 @@ export function ContactForm() {
             ))}
           </select>
         </Field>
+      </div>
+
+      <div className="mt-6">
+        <p className="text-light-text font-bold text-sm">
+          About the vehicle{' '}
+          <span className="text-light-text-muted font-normal">(optional)</span>
+        </p>
+        <p className="text-light-text-muted text-xs mt-1 mb-3">
+          Asking about a specific car? Add it so we can advise faster.
+        </p>
+        <VehicleSelector
+          idPrefix={baseId}
+          make={form.carMake}
+          model={form.carModel}
+          year={form.carYear}
+          errors={{}}
+          onChange={updateVehicle}
+          required={false}
+        />
       </div>
 
       <div className="mt-4">
