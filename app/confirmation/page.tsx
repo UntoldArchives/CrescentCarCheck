@@ -6,13 +6,13 @@ import { ConfirmationDetails } from '@/components/checkout/ConfirmationDetails'
 
 export const metadata: Metadata = {
   title: 'Booking Received',
-  description: 'Your Crescent Car Checks inspection request has been received. We will be in touch shortly.',
+  description: 'Your Crescent Car Check inspection request has been received. We will be in touch shortly.',
   robots: { index: false, follow: false },
 }
 
-const BUSINESS_PHONE = process.env.NEXT_PUBLIC_BUSINESS_PHONE || '+971500000000'
-const BUSINESS_EMAIL = process.env.NEXT_PUBLIC_BUSINESS_EMAIL || 'hello@crescentcarchecks.ae'
-const WHATSAPP = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '971500000000'
+const BUSINESS_PHONE = process.env.NEXT_PUBLIC_BUSINESS_PHONE || '+971 502526314'
+const BUSINESS_EMAIL = process.env.NEXT_PUBLIC_BUSINESS_EMAIL || 'crescentcarcheck@gmail.com'
+const WHATSAPP = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '971502526314'
 
 const NEXT_STEPS = [
   {
@@ -48,9 +48,9 @@ export default function ConfirmationPage() {
               We&apos;ve received your <span className="text-accent">booking request</span>.
             </h1>
             <p className="text-text-secondary text-base md:text-lg mt-5 max-w-2xl leading-relaxed">
-              Thanks! We&apos;ll review the car&apos;s location and our inspector&apos;s
-              availability, then confirm the exact arrival time by WhatsApp. No payment is
-              needed until we confirm your slot.
+              Thanks! We&apos;ve received your booking and payment. We&apos;ll review the
+              car&apos;s location and our inspector&apos;s availability, then confirm the
+              exact arrival time by WhatsApp.
             </p>
 
             <Suspense fallback={null}>
@@ -95,7 +95,7 @@ export default function ConfirmationPage() {
           <div className="mt-10 flex flex-col sm:flex-row items-center gap-4">
             <ButtonLink
               href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(
-                'Hi Crescent Car Checks, I just booked an inspection and wanted to share more details.',
+                'Hi Crescent Car Check, I just booked an inspection and wanted to share more details.',
               )}`}
               size="lg"
               arrow

@@ -8,7 +8,7 @@ export type BookingStatus =
   | 'cancelled'
   | 'completed'
 export type PackageId = 'standard' | 'comprehensive' | 'premium'
-export type Emirate = 'Abu Dhabi' | 'Dubai' | 'Sharjah' | 'Ajman' | 'Umm Al Quwain' | 'Ras Al Khaimah' | 'Fujairah'
+export type Emirate = 'Abu Dhabi' | 'Dubai' | 'Sharjah' | 'Ajman' | 'Umm Al Quwain' | 'Ras Al Khaimah' | 'Fujairah' | 'Al Ain'
 /** Preferred arrival window. The exact time is confirmed later by WhatsApp. */
 export type PreferredWindow = 'morning' | 'afternoon' | 'evening'
 
@@ -62,7 +62,12 @@ export interface BookingRecord {
   status: BookingStatus
   packageId: PackageId
   packageName: string
+  /** Base package price in AED, before any travel fee. */
   packagePrice: number
+  /** Flat travel surcharge in AED for far emirates (0 for none). */
+  travelFee: number
+  /** Amount the customer pays: packagePrice + travelFee. */
+  totalPrice: number
   customerName: string
   customerPhone: string
   customerEmail: string | null
@@ -104,6 +109,8 @@ export interface Booking {
   package_id: PackageId
   package_name: string
   package_price: number
+  travel_fee: number
+  total_price: number
   google_calendar_event_id: string | null
   stripe_payment_intent_id: string | null
   stripe_session_id: string | null

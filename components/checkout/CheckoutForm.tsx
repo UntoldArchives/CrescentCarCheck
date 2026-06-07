@@ -6,7 +6,7 @@ import { ShieldCheck, Car, MapPin, Calendar, User, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Field, inputBase, selectClass, selectChevronStyle, fieldBorder } from '@/components/ui/Field'
 import { Button } from '@/components/ui/Button'
-import { PACKAGES } from '@/lib/packages'
+import { PACKAGES, travelFeeForEmirate } from '@/lib/packages'
 import { validateForm } from '@/lib/validation'
 import { trackEvent, GA_EVENTS } from '@/lib/analytics'
 import { VehicleSelector } from './VehicleSelector'
@@ -15,14 +15,16 @@ import { PackageSummary } from './PackageSummary'
 import { LocationMap } from './LocationMap'
 import type { BookingFormData, BookingFormErrors, Emirate, PackageId, ParkingType } from '@/types/booking'
 
+// Ordered: no-fee emirates first, then the ones carrying a flat travel fee.
 const EMIRATES: Emirate[] = [
   'Dubai',
-  'Abu Dhabi',
   'Sharjah',
   'Ajman',
+  'Umm Al Quwain',
+  'Abu Dhabi',
+  'Al Ain',
   'Ras Al Khaimah',
   'Fujairah',
-  'Umm Al Quwain',
 ]
 
 const PARKING_OPTIONS: { value: ParkingType; label: string; hint: string }[] = [
@@ -71,6 +73,8 @@ export function CheckoutForm() {
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   const pkg = PACKAGES.find((p) => p.id === form.packageId) ?? PACKAGES[1]
+  const travelFee = travelFeeForEmirate(form.emirate)
+  const total = pkg.price + travelFee
 
   const id = (k: string) => `${baseId}-${k}`
 
@@ -122,7 +126,10 @@ export function CheckoutForm() {
         return
       }
       trackEvent(GA_EVENTS.CHECKOUT_SUBMITTED, { package: form.packageId })
-      router.push(`/confirmation?id=${encodeURIComponent(data.id)}&package=${form.packageId}`)
+      router.push(
+        `/confirmation?id=${encodeURIComponent(data.id)}&package=${form.packageId}` +
+          `&emirate=${encodeURIComponent(form.emirate)}`,
+      )
     } catch {
       setSubmitting(false)
       setSubmitError('Network error. Please check your connection and try again.')
@@ -161,11 +168,15 @@ export function CheckoutForm() {
                   style={selectChevronStyle}
                 >
                   <option value="">Select emirate</option>
-                  {EMIRATES.map((em) => (
-                    <option key={em} value={em}>
-                      {em}
-                    </option>
-                  ))}
+                  {EMIRATES.map((em) => {
+                    const fee = travelFeeForEmirate(em)
+                    return (
+                      <option key={em} value={em}>
+                        {em}
+                        {fee ? ` (+AED ${fee} travel)` : ''}
+                      </option>
+                    )
+                  })}
                 </select>
               </Field>
 
@@ -215,7 +226,7 @@ export function CheckoutForm() {
 
           {/* Schedule */}
           <section aria-labelledby="schedule-heading">
-            <SectionHeading icon={Calendar} step="3" id="schedule-heading" title="When Should We Come?" hint="Pick a date from tomorrow onwards and a preferred window — we'll confirm the exact time by WhatsApp." />
+            <SectionHeading icon={Calendar} step="3" id="schedule-heading" title="When Should We Come?" hint="Pick a date and a preferred window — we'll confirm the exact time by WhatsApp, and we'll do our best to fit in same-day requests." />
             <ScheduleSlot
               idPrefix={baseId}
               preferredDate={form.preferredDate}
@@ -285,7 +296,7 @@ export function CheckoutForm() {
 
           {/* Submit (mobile shows summary above this on small screens) */}
           <div className="lg:hidden">
-            <PackageSummary pkg={pkg} />
+            <PackageSummary pkg={pkg} emirate={form.emirate} travelFee={travelFee} />
           </div>
 
           <div className="border-t border-light-border pt-6">
@@ -312,14 +323,16 @@ export function CheckoutForm() {
 
             <p className="text-light-text-muted text-xs mt-4 sm:text-right flex items-center sm:justify-end gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
-              AED {pkg.price} — payment will be arranged after we confirm your slot.
+              AED {total}
+              {travelFee > 0 ? ` (incl. AED ${travelFee} travel)` : ''} — paid securely
+              online now to confirm your booking.
             </p>
           </div>
         </div>
 
         {/* Right: sticky summary (desktop only) */}
         <div className="hidden lg:block lg:sticky lg:top-24">
-          <PackageSummary pkg={pkg} />
+          <PackageSummary pkg={pkg} emirate={form.emirate} travelFee={travelFee} />
         </div>
       </div>
     </form>

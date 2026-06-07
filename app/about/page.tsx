@@ -10,7 +10,7 @@ import { EmiratesCovered } from '@/components/about/EmiratesCovered'
 export const metadata: Metadata = {
   title: 'About Us',
   description:
-    'Crescent Car Checks helps UAE buyers purchase used cars with confidence. Learn about our inspectors, our values, and why we do what we do.',
+    'Crescent Car Check helps UAE buyers purchase used cars with confidence. Learn about our inspectors, our values, and why we do what we do.',
 }
 
 const VALUES = [
@@ -58,7 +58,7 @@ export default function AboutPage() {
               We Help You Buy <span className="text-accent">Used Cars</span> With <span className="text-accent">Total Confidence</span>
             </h1>
             <p className="text-text-secondary text-base md:text-lg mt-5 max-w-2xl leading-relaxed">
-              Crescent Car Checks is an independent pre-purchase car inspection
+              Crescent Car Check is an independent pre-purchase car inspection
               service operating across the Emirates. We exist for one reason: to make
               sure you know exactly what you are buying.
             </p>
@@ -67,7 +67,7 @@ export default function AboutPage() {
           <div className="relative rounded-card-lg overflow-hidden mt-12 shadow-[0_24px_60px_rgba(0,0,0,0.4)]">
             <Image
               src="https://images.unsplash.com/photo-1555215695-3004980ad54e?w=1600&q=85"
-              alt="Crescent Car Checks inspector at work"
+              alt="Crescent Car Check inspector at work"
               width={1600}
               height={720}
               priority
@@ -99,7 +99,7 @@ export default function AboutPage() {
 
           <div className="order-1 lg:order-2">
             <h2 className="text-display-sm md:text-display-md font-bold text-light-text">
-              Why We Built Crescent Car Checks
+              Why We Built Crescent Car Check
             </h2>
             <p className="text-light-text-secondary leading-relaxed mt-4">
               Buying a used car in the UAE should not feel like a gamble. Yet every
@@ -108,7 +108,7 @@ export default function AboutPage() {
               hands.
             </p>
             <p className="text-light-text-secondary leading-relaxed mt-4">
-              We started Crescent Car Checks to put the truth back in the buyer&apos;s
+              We started Crescent Car Check to put the truth back in the buyer&apos;s
               hands. Our inspectors travel to wherever the car is, run a meticulous
               multi-point check, and hand you a clear digital report so you know
               exactly what you are paying for.

@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Privacy Policy',
   description:
-    'How Crescent Car Checks collects, uses, and protects your personal information when you book an inspection or contact us.',
+    'How Crescent Car Check collects, uses, and protects your personal information when you book an inspection or contact us.',
 }
 
 const LAST_UPDATED = '1 June 2026'
@@ -12,7 +12,7 @@ const SECTIONS = [
   {
     heading: 'Who We Are',
     body: [
-      'Crescent Car Checks provides independent pre-purchase car inspection services across the United Arab Emirates. This policy explains how we handle the personal information you share with us when you visit our website, request an inspection, or get in touch.',
+      'Crescent Car Check provides independent pre-purchase car inspection services across the United Arab Emirates. This policy explains how we handle the personal information you share with us when you visit our website, request an inspection, or get in touch.',
     ],
   },
   {
@@ -48,7 +48,7 @@ const SECTIONS = [
   {
     heading: 'Contact Us',
     body: [
-      'If you have any questions about this privacy policy or how we handle your information, please reach out to us at hello@crescentcarchecks.com.',
+      'If you have any questions about this privacy policy or how we handle your information, please reach out to us at crescentcarcheck@gmail.com.',
     ],
   },
 ]

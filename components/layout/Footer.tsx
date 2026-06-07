@@ -2,9 +2,12 @@ import Link from 'next/link'
 import { Phone, Mail, MapPin } from 'lucide-react'
 import { Logo } from './Logo'
 
-const PHONE = process.env.NEXT_PUBLIC_BUSINESS_PHONE || '+971500000000'
-const EMAIL = process.env.NEXT_PUBLIC_BUSINESS_EMAIL || 'hello@crescentcarchecks.com'
-const WHATSAPP = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '971500000000'
+const PHONE = process.env.NEXT_PUBLIC_BUSINESS_PHONE || '+971 502526314'
+const EMAIL = process.env.NEXT_PUBLIC_BUSINESS_EMAIL || 'crescentcarcheck@gmail.com'
+const WHATSAPP = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '971502526314'
+// Optional — only rendered once the client provides a real handle, so we never
+// ship a dead href="#" link that just jumps to the top of the page.
+const INSTAGRAM = process.env.NEXT_PUBLIC_INSTAGRAM_URL || ''
 
 const SERVICES = [
   { href: '/packages', label: 'Pre-Purchase Inspection' },
@@ -52,13 +55,17 @@ export function Footer() {
               Independent pre-purchase car inspections, on-site across the UAE.
             </p>
             <div className="flex items-center gap-3 mt-5">
-              <a
-                href="#"
-                aria-label="Instagram"
-                className="w-9 h-9 rounded-full bg-card border border-border flex items-center justify-center text-text-primary hover:bg-accent hover:text-background hover:border-accent transition-colors duration-200"
-              >
-                <InstagramGlyph className="w-4 h-4" />
-              </a>
+              {INSTAGRAM && (
+                <a
+                  href={INSTAGRAM}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Instagram"
+                  className="w-9 h-9 rounded-full bg-card border border-border flex items-center justify-center text-text-primary hover:bg-accent hover:text-background hover:border-accent transition-colors duration-200"
+                >
+                  <InstagramGlyph className="w-4 h-4" />
+                </a>
+              )}
               <a
                 href={`https://wa.me/${WHATSAPP}`}
                 target="_blank"
@@ -124,7 +131,7 @@ export function Footer() {
       <div className="border-t border-border">
         <div className="container-wide py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-text-muted text-sm">
-            © 2026 Crescent Car Checks. All rights reserved.
+            © 2026 Crescent Car Check. All rights reserved.
           </p>
           <p className="text-text-muted text-sm">
             <Link href="/privacy" className="hover:text-text-secondary transition-colors">

@@ -14,6 +14,8 @@ interface VehicleSelectorProps {
   year: string
   errors: { carMake?: string; carModel?: string; carYear?: string }
   onChange: (patch: { carMake?: string; carModel?: string; carYear?: string }) => void
+  /** Show the required asterisks (checkout). Pass false to render as optional (contact form). */
+  required?: boolean
 }
 
 export function VehicleSelector({
@@ -23,6 +25,7 @@ export function VehicleSelector({
   year,
   errors,
   onChange,
+  required = true,
 }: VehicleSelectorProps) {
   // Track "Custom" mode explicitly: selecting Custom clears the value to '',
   // which is otherwise indistinguishable from "nothing selected", so we can't
@@ -71,7 +74,7 @@ export function VehicleSelector({
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <Field id={id('carMake')} label="Car make" required error={errors.carMake}>
+      <Field id={id('carMake')} label="Car make" required={required} error={errors.carMake}>
         <select
           id={id('carMake')}
           value={makeSelectValue}
@@ -99,7 +102,7 @@ export function VehicleSelector({
         )}
       </Field>
 
-      <Field id={id('carModel')} label="Model" required error={errors.carModel}>
+      <Field id={id('carModel')} label="Model" required={required} error={errors.carModel}>
         {showModelDropdown ? (
           <select
             id={id('carModel')}
@@ -140,7 +143,7 @@ export function VehicleSelector({
         )}
       </Field>
 
-      <Field id={id('carYear')} label="Year" required error={errors.carYear}>
+      <Field id={id('carYear')} label="Year" required={required} error={errors.carYear}>
         <select
           id={id('carYear')}
           value={year}

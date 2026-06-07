@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { validateForm } from '@/lib/validation'
-import { getPackageById } from '@/lib/packages'
+import { getPackageById, travelFeeForEmirate } from '@/lib/packages'
+import { createServerClient, isSupabaseConfigured } from '@/lib/supabase/server'
+import { notifyNewBooking } from '@/lib/email'
 import type { BookingFormData, BookingRecord, Emirate, ParkingType, PreferredWindow } from '@/types/booking'
 
 /**
@@ -46,32 +48,56 @@ async function reserveCalendarHold(record: BookingRecord): Promise<string | null
 }
 
 /**
- * Future Supabase integration boundary (no-op today).
+ * Persist the booking to Supabase when configured. BookingRecord maps 1:1 to the
+ * `bookings` columns (see supabase/migrations/001_bookings.sql). While Supabase
+ * is not configured this is a no-op + log, so the UI works today and starts
+ * persisting the moment the env keys are added — no frontend change required.
  *
- * Replace the body with an insert via `createServerClient()` from
- * '@/lib/supabase/server'. BookingRecord maps 1:1 to the `bookings` columns
- * (see supabase/migrations/001_bookings.sql), e.g.:
- *
- *   const supabase = createServerClient()
- *   const { error } = await supabase.from('bookings').insert({
- *     id: record.id,
- *     booking_status: record.status,
- *     package_id: record.packageId,
- *     // …map remaining camelCase fields to snake_case columns…
- *     google_calendar_event_id: record.googleCalendarEventId,
- *   })
- *   if (error) throw error
+ * Throws on a real DB error (only possible when configured) so the caller can
+ * tell the user the request was not saved instead of pretending it succeeded.
  */
 async function persistBooking(record: BookingRecord): Promise<void> {
-  // No database connected yet — nothing is stored. Logged for local visibility.
-  console.log('[booking:stub] received booking request', {
+  if (!isSupabaseConfigured()) {
+    console.log('[booking] Supabase not configured — request validated but not stored', {
+      id: record.id,
+      status: record.status,
+      package: record.packageId,
+      emirate: record.emirate,
+      date: record.preferredDate,
+      window: record.preferredWindow,
+    })
+    return
+  }
+
+  const supabase = createServerClient()
+  const { error } = await supabase.from('bookings').insert({
     id: record.id,
-    status: record.status,
-    package: record.packageId,
+    created_at: record.createdAt,
+    updated_at: record.updatedAt,
+    customer_name: record.customerName,
+    customer_phone: record.customerPhone,
+    customer_email: record.customerEmail,
     emirate: record.emirate,
-    date: record.preferredDate,
-    window: record.preferredWindow,
+    address: record.address,
+    location_lat: record.locationLat,
+    location_lng: record.locationLng,
+    parking_type: record.parkingType,
+    additional_notes: record.additionalNotes,
+    car_make: record.carMake,
+    car_model: record.carModel,
+    car_year: record.carYear,
+    preferred_date: record.preferredDate,
+    preferred_window: record.preferredWindow,
+    package_id: record.packageId,
+    package_name: record.packageName,
+    package_price: record.packagePrice,
+    travel_fee: record.travelFee,
+    total_price: record.totalPrice,
+    google_calendar_event_id: record.googleCalendarEventId,
+    booking_status: record.status,
+    // payment_status defaults to 'pending'; stripe_* columns stay null until wired.
   })
+  if (error) throw error
 }
 
 export async function POST(req: Request) {
@@ -113,6 +139,10 @@ export async function POST(req: Request) {
   }
 
   // After validateForm() these enum-ish fields are guaranteed non-empty.
+  // Travel fee + total are derived server-side from the canonical rule so the
+  // customer can't tamper with the surcharge.
+  const emirate = form.emirate as Emirate
+  const travelFee = travelFeeForEmirate(emirate)
   const now = new Date().toISOString()
   const record: BookingRecord = {
     id: generateBookingId(),
@@ -120,13 +150,15 @@ export async function POST(req: Request) {
     packageId: pkg.id,
     packageName: pkg.name,
     packagePrice: pkg.price,
+    travelFee,
+    totalPrice: pkg.price + travelFee,
     customerName: form.customerName.trim(),
     customerPhone: form.customerPhone.trim(),
     customerEmail: form.customerEmail.trim() || null,
     carMake: form.carMake.trim(),
     carModel: form.carModel.trim(),
     carYear: form.carYear,
-    emirate: form.emirate as Emirate,
+    emirate,
     parkingType: form.parkingType as ParkingType,
     address: form.address.trim(),
     locationLat: form.locationLat,
@@ -139,12 +171,30 @@ export async function POST(req: Request) {
     updatedAt: now,
   }
 
-  // --- Future integrations (no-ops today, frontend won't change when wired) ---
+  // --- Integrations (each dormant until its env keys are present) ---
   // 1) Reserve a tentative calendar hold for the chosen date/window.
-  record.googleCalendarEventId = await reserveCalendarHold(record)
-  // 2) Persist the booking (Supabase insert later).
-  await persistBooking(record)
-  // 3) (Later) Notify the team + customer via Resend / WhatsApp.
+  // 2) Persist the booking (Supabase insert when configured).
+  // A failure in either means the request was NOT saved — tell the user rather
+  // than pretending it went through.
+  try {
+    record.googleCalendarEventId = await reserveCalendarHold(record)
+    await persistBooking(record)
+  } catch (err) {
+    console.error('[booking] failed to save booking request', err)
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          'We could not save your request just now. Please try again, or message us on WhatsApp.',
+      },
+      { status: 500 },
+    )
+  }
+
+  // 3) Notify the team + customer by email. Best-effort: the booking is already
+  //    saved, so an email failure must not fail the request (notifyNewBooking
+  //    swallows its own errors).
+  await notifyNewBooking(record)
 
   return NextResponse.json({ ok: true, id: record.id, status: record.status })
 }

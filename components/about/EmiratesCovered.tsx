@@ -57,7 +57,7 @@ export function EmiratesCovered() {
         </ul>
 
         <div className="mt-10 flex flex-col sm:flex-row items-center gap-4">
-          <ButtonLink href="/checkout?package=comprehensive" size="lg" arrow>
+          <ButtonLink href="/packages" size="lg" arrow>
             Book an Inspection in Your Emirate
           </ButtonLink>
           <p className="text-light-text-muted text-sm">

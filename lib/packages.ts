@@ -1,4 +1,4 @@
-import { Package, PreferredWindow } from '@/types/booking'
+import { Emirate, Package, PreferredWindow } from '@/types/booking'
 
 export const PACKAGES: Package[] = [
   {
@@ -11,8 +11,6 @@ export const PACKAGES: Package[] = [
       'Exterior visual inspection',
       'Interior condition check',
       'Exterior paint meter checks',
-      'OBD diagnostic scan',
-      'Battery health check',
       'AC temperature check',
       'Tyres condition check',
       'Rims & brakes visual check',
@@ -38,7 +36,8 @@ export const PACKAGES: Package[] = [
       'Panel gaps check',
       'Detailed visible fluid leak check',
       'Suspension visual check',
-      'Road-test observations, where possible',
+      'Test Drive Observations',
+      'Transmission check',
       'Detailed photo report',
       'Buy / negotiate / avoid recommendation',
     ],
@@ -55,7 +54,6 @@ export const PACKAGES: Package[] = [
       'Endoscopic camera check for hard-to-see areas',
       'Detailed engine bay inspection',
       'Detailed engine and fluid leak check',
-      'Transmission check',
       'AC compressor check',
       'Extended OBD fault-code review',
       'Battery and electrical system review',
@@ -68,6 +66,30 @@ export const PACKAGES: Package[] = [
 
 export const getPackageById = (id: string): Package | undefined =>
   PACKAGES.find(p => p.id === id)
+
+/**
+ * Travel pricing. Inspections in the nearer emirates are at the base package
+ * price; the farther ones carry a flat travel surcharge. This is the single
+ * source of truth — the checkout UI, the API and emails all derive the total
+ * from here so the customer is never quoted one figure and charged another.
+ */
+export const TRAVEL_FEE = 100 // AED, flat
+
+/** Locations that carry the flat travel surcharge. */
+export const TRAVEL_FEE_EMIRATES: readonly Emirate[] = [
+  'Abu Dhabi',
+  'Al Ain',
+  'Ras Al Khaimah',
+  'Fujairah',
+]
+
+/** Travel surcharge for a given location (0 when none / not yet chosen). */
+export const travelFeeForEmirate = (emirate: Emirate | ''): number =>
+  emirate && TRAVEL_FEE_EMIRATES.includes(emirate) ? TRAVEL_FEE : 0
+
+/** Total the customer pays = base package price + any travel surcharge. */
+export const totalForPackage = (pkg: Package, emirate: Emirate | ''): number =>
+  pkg.price + travelFeeForEmirate(emirate)
 
 /**
  * Preferred arrival windows. We deliberately do NOT offer exact times: there is
@@ -89,15 +111,6 @@ export const TIME_WINDOWS: TimeWindow[] = [
 export const getWindowById = (id: string): TimeWindow | undefined =>
   TIME_WINDOWS.find((w) => w.id === id)
 
-export const CAR_MAKES = [
-  'Toyota', 'Nissan', 'Mercedes-Benz', 'BMW', 'Audi',
-  'Land Rover', 'Hyundai', 'Kia', 'Honda', 'Lexus',
-  'Chevrolet', 'Other',
-] as const
-
-export type CarMake = typeof CAR_MAKES[number]
-
-export const EMIRATES = [
-  'Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman',
-  'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah',
-] as const
+// Note: the car make/model catalogue lives in lib/cars.ts (CAR_MAKES, MAKE_NAMES,
+// modelsForMake) and the emirate list is defined where it's used (CheckoutForm,
+// structured-data). Earlier duplicate copies here were removed to avoid drift.

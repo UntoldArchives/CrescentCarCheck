@@ -2,63 +2,116 @@ import Image from 'next/image'
 import { CheckCircle2 } from 'lucide-react'
 import { ButtonLink } from '@/components/ui/ButtonLink'
 
+type CssVars = React.CSSProperties & { '--i'?: number }
+
 const TRUST_ITEMS = ['Certified Inspectors', 'Same-Day Slots', 'Instant Reports']
+
+/** Shared content of the gold panel — reused by the mobile and desktop layouts. */
+function PanelContent() {
+  return (
+    <>
+      <h1
+        className="hero-fx-item text-2xl sm:text-4xl lg:text-4xl xl:text-5xl font-black leading-[1.1] sm:leading-[1.08]"
+        style={{ '--i': 0 } as CssVars}
+      >
+        Buy With Confidence and Avoid Hidden Surprises!
+      </h1>
+      <p
+        className="hero-fx-item text-background/80 text-sm sm:text-base mt-2.5 sm:mt-4 leading-relaxed"
+        style={{ '--i': 1 } as CssVars}
+      >
+        We help used car buyers avoid costly mistakes by uncovering hidden damage,
+        mechanical defects, accident history, fault codes and more — so you know
+        exactly what you&apos;re buying before you pay.
+      </p>
+
+      <div className="hero-fx-item mt-5 sm:mt-6" style={{ '--i': 2 } as CssVars}>
+        <ButtonLink
+          href="/packages"
+          size="lg"
+          arrow
+          fullWidth
+          className="xs:w-auto bg-background text-accent hover:bg-background/90"
+        >
+          Book Inspection
+        </ButtonLink>
+      </div>
+
+      <div
+        className="hero-fx-item flex flex-wrap items-center gap-x-4 gap-y-2 mt-5 pt-4 sm:mt-6 sm:pt-5 border-t border-background/15"
+        style={{ '--i': 3 } as CssVars}
+      >
+        {TRUST_ITEMS.map((item) => (
+          <span
+            key={item}
+            className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-background/90"
+          >
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+            {item}
+          </span>
+        ))}
+      </div>
+    </>
+  )
+}
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-[58svh] sm:min-h-[80svh] lg:min-h-[100svh] flex items-center overflow-hidden bg-background">
-      {/* Full-bleed inspector photo */}
-      <Image
-        src="/Banner.png"
-        alt="Crescent Car Check inspector examining a vehicle on-site"
-        fill
-        priority
-        quality={90}
-        sizes="100vw"
-        className="object-cover object-[center_38%]"
-      />
+    <section className="relative bg-background overflow-hidden">
+      {/*
+        Mobile / tablet: stacked layout (closer to the VerifyBuy reference).
+        The inspector photo reads clearly up top; the gold card sits below and
+        overlaps the image only slightly, so it never blocks the subject.
+      */}
+      <div className="lg:hidden container-wide pt-20 sm:pt-24 pb-12">
+        {/*
+          Banner is a wide ~21:9 landscape with the inspector + car on the LEFT,
+          so we frame it in a rounded card and bias the crop left (object-left)
+          to keep the subject in view rather than the empty pavement on the right.
+        */}
+        <div className="relative w-full aspect-[4/3] xs:aspect-[3/2] rounded-card-lg overflow-hidden shadow-2xl">
+          <Image
+            src="/Banner.png"
+            alt="Crescent Car Check inspector examining a vehicle on-site"
+            fill
+            priority
+            quality={90}
+            sizes="100vw"
+            className="object-cover object-left hero-fx-img"
+          />
+        </div>
 
-      {/* Readability scrim — darkens the photo so the bubble and text read on any crop */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/45 lg:bg-gradient-to-r lg:from-black/30 lg:via-black/15 lg:to-black/70"
-      />
+        {/* Gold card overlaps the photo only slightly, with matching rounded corners */}
+        <div className="hero-fx-panel relative z-10 -mt-8 bg-accent text-background rounded-card-lg p-6 sm:p-8 shadow-2xl">
+          <PanelContent />
+        </div>
+      </div>
 
-      {/* Content */}
-      <div className="relative z-10 container-wide w-full pt-20 sm:pt-24 md:pt-28 pb-10 sm:pb-12">
-        <div className="lg:flex lg:justify-end">
-          <div className="bg-accent text-background rounded-card-lg p-5 sm:p-9 lg:p-10 shadow-2xl w-full max-w-sm sm:max-w-xl lg:w-[46%]">
-            <h1 className="text-2xl sm:text-4xl lg:text-4xl xl:text-5xl font-black leading-[1.1] sm:leading-[1.08]">
-              Buy With Confidence and Avoid Hidden Surprises!
-            </h1>
-            <p className="text-background/80 text-sm sm:text-base mt-2.5 sm:mt-4 leading-relaxed">
-              We help used car buyers avoid costly mistakes by uncovering hidden damage,
-              mechanical defects, accident history, fault codes and more — so you know
-              exactly what you&apos;re buying before you pay.
-            </p>
+      {/*
+        Desktop: full-bleed inspector photo with the gold panel floated to the
+        right — unchanged premium Crescent treatment.
+      */}
+      <div className="hidden lg:flex relative min-h-[100svh] items-center overflow-hidden">
+        <Image
+          src="/Banner.png"
+          alt="Crescent Car Check inspector examining a vehicle on-site"
+          fill
+          priority
+          quality={90}
+          sizes="100vw"
+          className="object-cover object-[center_38%] hero-fx-img"
+        />
 
-            <div className="mt-5 sm:mt-6">
-              <ButtonLink
-                href="/checkout?package=comprehensive"
-                size="lg"
-                arrow
-                fullWidth
-                className="xs:w-auto bg-background text-accent hover:bg-background/90"
-              >
-                Book Inspection
-              </ButtonLink>
-            </div>
+        {/* Readability scrim — darkens the photo so the panel reads on any crop */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-r from-black/30 via-black/15 to-black/70"
+        />
 
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-5 pt-4 sm:mt-6 sm:pt-5 border-t border-background/15">
-              {TRUST_ITEMS.map((item) => (
-                <span
-                  key={item}
-                  className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-background/90"
-                >
-                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-                  {item}
-                </span>
-              ))}
+        <div className="relative z-10 container-wide w-full pt-28 pb-12">
+          <div className="flex justify-end">
+            <div className="hero-fx-panel bg-accent text-background rounded-card-lg p-10 shadow-2xl w-[46%]">
+              <PanelContent />
             </div>
           </div>
         </div>

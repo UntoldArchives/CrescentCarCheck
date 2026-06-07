@@ -19,10 +19,10 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://crescentcarchecks.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://crescentcarcheck.com'),
   title: {
-    default: 'Crescent Car Checks | Professional Car Inspections in UAE',
-    template: '%s | Crescent Car Checks',
+    default: 'Crescent Car Check | Professional Car Inspections in UAE',
+    template: '%s | Crescent Car Check',
   },
   description:
     'Book an independent pre-purchase car inspection across the UAE. Up to 600 check points, on-site at the seller, same-day digital report. Available in Dubai, Abu Dhabi, Sharjah and all Emirates.',
@@ -35,15 +35,15 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_AE',
-    siteName: 'Crescent Car Checks',
-    title: 'Crescent Car Checks | Professional Car Inspections in UAE',
+    siteName: 'Crescent Car Check',
+    title: 'Crescent Car Check | Professional Car Inspections in UAE',
     description:
       'Independent pre-purchase car inspections across the UAE. Up to 600 check points. Same-day digital reports. From AED 249.',
-    images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: 'Crescent Car Checks' }],
+    // og:image is provided automatically by app/opengraph-image.tsx
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Crescent Car Checks',
+    title: 'Crescent Car Check',
     description: 'Professional car inspections across the UAE. Book online.',
   },
   robots: { index: true, follow: true },

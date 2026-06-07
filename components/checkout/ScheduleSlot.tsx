@@ -20,10 +20,9 @@ const WINDOW_ICONS: Record<PreferredWindow, typeof Sun> = {
   evening: Sunset,
 }
 
-/** Earliest selectable date is tomorrow (UAE business prep). */
-function tomorrowISO(): string {
+/** Earliest selectable date is today — we try to accommodate same-day slots. */
+function todayISO(): string {
   const d = new Date()
-  d.setDate(d.getDate() + 1)
   const tz = d.getTimezoneOffset() * 60000
   return new Date(d.getTime() - tz).toISOString().slice(0, 10)
 }
@@ -52,7 +51,7 @@ export function ScheduleSlot({
           id={id('preferredDate')}
           type="date"
           value={preferredDate}
-          min={tomorrowISO()}
+          min={todayISO()}
           max={maxISO()}
           onChange={(e) => onChange({ preferredDate: e.target.value })}
           className={cn(inputBase, fieldBorder(errors.preferredDate))}

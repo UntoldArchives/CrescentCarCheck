@@ -1,10 +1,15 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import { useRef } from 'react'
-import { ChevronLeft, ChevronRight, Star } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Star, FileText } from 'lucide-react'
 import { useReveal } from '@/hooks/useReveal'
 import { cn } from '@/lib/utils'
+
+// Where each sample card points. A polished placeholder for now — swap to the
+// real per-car report links once the client provides the sample PDFs.
+const SAMPLE_REPORT_HREF = '/sample-report'
 
 interface InspectedCar {
   make: string
@@ -91,10 +96,13 @@ function CarCard({ car }: { car: InspectedCar }) {
   const dark = car.featured
   const imageSrc = car.image ?? PLACEHOLDER_IMAGE
   return (
-    <div
+    <Link
+      href={SAMPLE_REPORT_HREF}
+      aria-label={`View a sample inspection report (${car.make} ${car.model})`}
       className={cn(
-        'snap-start flex-shrink-0 rounded-card-lg overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1',
+        'group snap-start flex-shrink-0 rounded-card-lg overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1',
         'w-[78vw] xs:w-[62vw] sm:w-[48vw] md:w-[32vw] lg:w-[18.5%]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
         dark
           ? 'bg-background border-2 border-accent shadow-[0_18px_50px_rgba(255,198,0,0.22)]'
           : 'bg-light-surface shadow-[0_10px_30px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_44px_rgba(15,23,42,0.14)]'
@@ -149,8 +157,18 @@ function CarCard({ car }: { car: InspectedCar }) {
             {car.fuel}
           </span>
         </div>
+
+        <span
+          className={cn(
+            'inline-flex items-center gap-1.5 text-xs font-semibold pt-3 transition-all duration-200 group-hover:gap-2.5',
+            dark ? 'text-accent' : 'text-light-text group-hover:text-accent'
+          )}
+        >
+          <FileText className="w-3.5 h-3.5" aria-hidden="true" />
+          View sample report
+        </span>
       </div>
-    </div>
+    </Link>
   )
 }
 
@@ -171,10 +189,11 @@ export function RecentlyInspected() {
         <div className="text-center mb-10 md:mb-14">
           <Squiggle />
           <h2 className="text-display-md md:text-display-lg font-bold text-light-text">
-            Recently Inspected Cars
+            Sample Inspection Reports
           </h2>
           <p className="text-light-text-secondary text-base md:text-lg mt-3 max-w-xl mx-auto">
-            See some of the vehicles we have recently inspected for our clients.
+            Sample, anonymised reports showing the kinds of vehicles we check and
+            exactly what your inspection report will look like. Tap any car to preview a report.
           </p>
         </div>
 

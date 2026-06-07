@@ -414,3 +414,40 @@
     animation-delay: calc(0.9s + var(--i) * 0.18s);
   }
 }
+
+/* ===== Hero: banner load-in ===== */
+/*
+ * One-time entrance on page load: the photo settles from a gentle zoom while
+ * the gold panel rises and its contents fade in, in sequence. Same safety model
+ * as the rest of the site — the animated states live ONLY inside
+ * `prefers-reduced-motion: no-preference` AND `html.js-anim-ready`, and rely on
+ * `animation-fill-mode: both` (no persistent hidden pre-state). So with JS
+ * blocked or reduced motion preferred, the hero is fully visible and static and
+ * can never get stuck blank. The image only transforms (never fades), so it
+ * stays opaque from first paint — keeping it healthy as the LCP element.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  html.js-anim-ready .hero-fx-img {
+    animation: hero-img-in 2.2s cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+  html.js-anim-ready .hero-fx-panel {
+    animation: hero-panel-in 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;
+  }
+  html.js-anim-ready .hero-fx-item {
+    animation: hero-item-in 0.6s ease both;
+    animation-delay: calc(0.45s + var(--i) * 0.1s);
+  }
+}
+
+@keyframes hero-img-in {
+  from { transform: scale(1.12); }
+  to   { transform: scale(1); }
+}
+@keyframes hero-panel-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes hero-item-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

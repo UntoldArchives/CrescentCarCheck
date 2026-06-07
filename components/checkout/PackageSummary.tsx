@@ -2,10 +2,15 @@
 
 import Link from 'next/link'
 import { Check, ShieldCheck, FileText, MapPin } from 'lucide-react'
-import type { Package } from '@/types/booking'
+import { TRAVEL_FEE } from '@/lib/packages'
+import type { Emirate, Package } from '@/types/booking'
 
 interface PackageSummaryProps {
   pkg: Package
+  /** Selected location; drives the travel-fee line. Empty until chosen. */
+  emirate?: Emirate | ''
+  /** Flat travel surcharge for the selected location (0 for none). */
+  travelFee?: number
 }
 
 const TRUST_POINTS = [
@@ -14,7 +19,8 @@ const TRUST_POINTS = [
   { Icon: ShieldCheck, text: 'Independent — no ties to any seller' },
 ] as const
 
-export function PackageSummary({ pkg }: PackageSummaryProps) {
+export function PackageSummary({ pkg, emirate = '', travelFee = 0 }: PackageSummaryProps) {
+  const total = pkg.price + travelFee
   return (
     <aside
       className="
@@ -34,22 +40,47 @@ export function PackageSummary({ pkg }: PackageSummaryProps) {
       </div>
       <p className="text-light-text-secondary text-sm mt-1 leading-snug">{pkg.tagline}</p>
 
-      <div className="mt-4 flex items-end justify-between gap-3 pb-4 border-b border-light-border">
-        <div>
-          <p className="text-xs text-light-text-muted uppercase tracking-wider font-semibold">
-            Total today
-          </p>
-          <p className="text-light-text text-3xl font-black leading-none mt-1">
-            AED {pkg.price}
-          </p>
-          <p className="text-xs text-light-text-muted mt-1">Inclusive of VAT</p>
+      <div className="mt-4 pb-4 border-b border-light-border">
+        {/* Line items: base price, then a travel fee once an emirate is chosen. */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="text-light-text-secondary">Inspection ({pkg.name})</span>
+            <span className="text-light-text font-semibold">AED {pkg.price}</span>
+          </div>
+          {travelFee > 0 && (
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-light-text-secondary">
+                Travel fee{emirate ? ` (${emirate})` : ''}
+              </span>
+              <span className="text-light-text font-semibold">AED {travelFee}</span>
+            </div>
+          )}
         </div>
-        <Link
-          href="/packages"
-          className="text-xs font-semibold text-accent hover:underline whitespace-nowrap"
-        >
-          Change package
-        </Link>
+
+        <div className="mt-3 flex items-end justify-between gap-3">
+          <div>
+            <p className="text-xs text-light-text-muted uppercase tracking-wider font-semibold">
+              Total today
+            </p>
+            <p className="text-light-text text-3xl font-black leading-none mt-1">
+              AED {total}
+            </p>
+            <p className="text-xs text-light-text-muted mt-1">Inclusive of VAT</p>
+          </div>
+          <Link
+            href="/packages"
+            className="text-xs font-semibold text-accent hover:underline whitespace-nowrap"
+          >
+            Change package
+          </Link>
+        </div>
+
+        {!emirate && (
+          <p className="text-xs text-light-text-muted mt-3 leading-snug">
+            Select your emirate below — a flat AED {TRAVEL_FEE} travel fee applies to Abu
+            Dhabi, Al Ain, Ras Al Khaimah and Fujairah.
+          </p>
+        )}
       </div>
 
       <div className="mt-4">

@@ -16,7 +16,7 @@ export function Logo({ className }: LogoProps) {
     >
       <Image
         src="/Logo Non BG.png"
-        alt="Crescent Car Checks"
+        alt="Crescent Car Check"
         fill
         sizes="(min-width: 640px) 200px, 170px"
         priority

@@ -1,0 +1,18 @@
+# Netlify build config for Crescent Car Check (Next.js 16).
+#
+# Netlify auto-detects Next.js and installs its Next runtime (the
+# @netlify/plugin-nextjs entry below pins it); App Router SSR, API routes,
+# and image optimization work without extra config. Security headers and any
+# redirects are defined in next.config.ts (honored by the runtime), so they're
+# intentionally NOT duplicated here.
+#
+# Set the production environment variables in the Netlify UI
+# (Site settings → Environment variables) — see deployment-checklist.md.
+# Don't commit real secrets to this file.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

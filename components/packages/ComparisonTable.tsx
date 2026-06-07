@@ -20,9 +20,9 @@ interface Row {
 }
 
 const COLUMNS: readonly Column[] = [
-  { name: 'Standard', price: 'AED 249', id: 'standard', popular: false },
-  { name: 'Comprehensive', price: 'AED 349', id: 'comprehensive', popular: true },
-  { name: 'Premium', price: 'AED 449', id: 'premium', popular: false },
+  { name: 'Standard', price: 'AED 249 onwards', id: 'standard', popular: false },
+  { name: 'Comprehensive', price: 'AED 349 onwards', id: 'comprehensive', popular: true },
+  { name: 'Premium', price: 'AED 449 onwards', id: 'premium', popular: false },
 ] as const
 
 const ROWS: readonly Row[] = [
@@ -38,8 +38,6 @@ const ROWS: readonly Row[] = [
   { label: 'Exterior visual inspection', values: [true, true, true] },
   { label: 'Interior condition check', values: [true, true, true] },
   { label: 'Exterior paint meter checks', values: [true, true, true] },
-  { label: 'OBD diagnostic scan', values: [true, true, 'Extended fault-code review'] },
-  { label: 'Battery health check', values: [true, true, 'Battery & electrical system review'] },
   { label: 'AC temperature check', values: [true, true, 'AC compressor check'] },
   { label: 'Tyres condition check', values: [true, true, true] },
   { label: 'Rims & brakes visual check', values: [true, true, true] },
@@ -47,15 +45,17 @@ const ROWS: readonly Row[] = [
   { label: 'Engine bay visual inspection', values: [true, true, 'Detailed engine bay inspection'] },
   { label: 'Visible fluid leak check', values: ['Basic', 'Detailed', 'Detailed engine & fluid leak check'] },
   { label: 'Accident history check', values: [true, true, true] },
+  { label: 'OBD diagnostic scan', values: [false, true, 'Extended fault-code review'] },
+  { label: 'Battery health check', values: [false, true, 'Battery & electrical system review'] },
   { label: 'Full underbody inspection', values: [false, true, true] },
   { label: 'Photos of visible faults', values: [false, true, true] },
   { label: 'Panel gaps check', values: [false, true, true] },
   { label: 'Suspension visual check', values: [false, true, true] },
-  { label: 'Road-test observations', values: [false, 'Where possible', 'Where possible'] },
+  { label: 'Test Drive Observations', values: [false, true, true] },
   { label: 'Detailed photo report', values: [false, true, true] },
   { label: 'Buy / negotiate / avoid recommendation', values: [false, true, true] },
+  { label: 'Transmission check', values: [false, true, true] },
   { label: 'Endoscopic camera check', values: [false, false, true] },
-  { label: 'Transmission check', values: [false, false, true] },
   { label: '20-minute inspector summary call', values: [false, false, true] },
   { label: 'Price negotiation notes', values: [false, false, true] },
 ] as const

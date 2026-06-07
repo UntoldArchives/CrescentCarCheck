@@ -83,6 +83,8 @@ function PackageCardComponent({
           <span className="text-4xl font-black text-text-primary leading-none">
             {pkg.price}
           </span>
+          {/* Price varies by emirate (travel fee), so the card shows a "from" price. */}
+          <span className="text-text-muted text-xs font-medium pb-1.5">onwards</span>
         </div>
         <span className="inline-block mt-3 text-xs font-semibold text-accent bg-accent/10 px-2.5 py-1 rounded-tag">
           {pkg.inspectionPoints} point check
