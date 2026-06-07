@@ -317,7 +317,7 @@ export function CheckoutForm() {
                 loading={submitting}
                 className="sm:min-w-[260px]"
               >
-                {submitting ? 'Sending request…' : 'Request Inspection'}
+                {submitting ? 'Sending request…' : 'Book Inspection'}
               </Button>
             </div>
 
