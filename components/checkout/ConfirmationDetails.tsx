@@ -1,26 +1,47 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { PACKAGES, travelFeeForEmirate } from '@/lib/packages'
-import type { Emirate, PackageId } from '@/types/booking'
+import { slotLabel } from '@/lib/packages'
 
-function isValidPackageId(s: string): s is PackageId {
-  return s === 'standard' || s === 'comprehensive' || s === 'premium'
+interface BookingSummary {
+  id: string
+  packageName: string
+  packagePrice: number
+  travelFee: number
+  totalPrice: number
+  inspectionDate: string
+  slotTime: string
+  paymentStatus: string
+  bookingStatus: string
 }
 
 export function ConfirmationDetails() {
   const search = useSearchParams()
   const id = search.get('id')
-  const pkgParam = search.get('package') ?? ''
-  const pkg = isValidPackageId(pkgParam) ? PACKAGES.find((p) => p.id === pkgParam) : undefined
+  const sessionId = search.get('session_id')
 
-  // travelFeeForEmirate guards with an includes() check, so an unknown value
-  // from the query string safely yields a 0 fee.
-  const emirate = (search.get('emirate') ?? '') as Emirate | ''
-  const travelFee = pkg ? travelFeeForEmirate(emirate) : 0
-  const total = pkg ? pkg.price + travelFee : 0
+  const [summary, setSummary] = useState<BookingSummary | null>(null)
 
-  if (!id && !pkg) return null
+  useEffect(() => {
+    if (!id || !sessionId) return
+    let active = true
+    fetch(`/api/bookings/${encodeURIComponent(id)}?session_id=${encodeURIComponent(sessionId)}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('not found'))))
+      .then((data: { ok?: boolean; booking?: BookingSummary }) => {
+        if (active && data.ok && data.booking) setSummary(data.booking)
+      })
+      .catch(() => {
+        /* Reference is still shown below; details are a best-effort enhancement. */
+      })
+    return () => {
+      active = false
+    }
+  }, [id, sessionId])
+
+  if (!id) return null
+
+  const slotText = summary ? slotLabel(summary.slotTime) : undefined
 
   return (
     <div
@@ -30,27 +51,25 @@ export function ConfirmationDetails() {
         px-5 py-3.5
       "
     >
-      {id && (
-        <div>
-          <p className="text-text-muted text-xs font-semibold uppercase tracking-wider">
-            Reference
-          </p>
-          <p className="text-text-primary font-mono text-sm mt-0.5">{id}</p>
-        </div>
+      <Detail label="Reference" value={id} mono />
+      {summary && (
+        <>
+          <Detail label="Package" value={`${summary.packageName} · AED ${summary.totalPrice}`} />
+          <Detail label="Date" value={summary.inspectionDate} />
+          {slotText && <Detail label="Slot" value={slotText} />}
+        </>
       )}
-      {pkg && (
-        <div>
-          <p className="text-text-muted text-xs font-semibold uppercase tracking-wider">
-            Package
-          </p>
-          <p className="text-text-primary font-semibold text-sm mt-0.5">
-            {pkg.name} · AED {total}
-            {travelFee > 0 ? (
-              <span className="text-text-muted font-normal"> (incl. AED {travelFee} travel)</span>
-            ) : null}
-          </p>
-        </div>
-      )}
+    </div>
+  )
+}
+
+function Detail({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div>
+      <p className="text-text-muted text-xs font-semibold uppercase tracking-wider">{label}</p>
+      <p className={`text-text-primary mt-0.5 ${mono ? 'font-mono text-sm' : 'font-semibold text-sm'}`}>
+        {value}
+      </p>
     </div>
   )
 }

@@ -1,4 +1,6 @@
 import Stripe from 'stripe'
+import { HOLD_MINUTES } from '@/lib/availability'
+import type { BookingRecord } from '@/types/booking'
 
 /**
  * Lazy Stripe client.
@@ -31,4 +33,41 @@ export function getStripe(): Stripe {
     })
   }
   return client
+}
+
+/**
+ * Creates a Stripe Checkout Session for a booking hold. The amount and name are
+ * derived from the server-built record (never client-sent money). booking_id is
+ * stamped in metadata so the webhook can resolve the booking on success/expiry.
+ */
+export async function createCheckoutSession(
+  record: BookingRecord,
+  appUrl: string,
+): Promise<Stripe.Checkout.Session> {
+  return getStripe().checkout.sessions.create({
+    mode: 'payment',
+    // Charge in AED. unit_amount is in fils (1 AED = 100 fils).
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: 'aed',
+          unit_amount: record.totalPrice * 100,
+          product_data: {
+            name: `Crescent Car Check - ${record.packageName} Inspection`,
+            description: `${record.carMake} ${record.carModel} (${record.carYear}) · ${record.emirate}`,
+          },
+        },
+      },
+    ],
+    ...(record.customerEmail ? { customer_email: record.customerEmail } : {}),
+    metadata: {
+      booking_id: record.id,
+      package_id: record.packageId,
+      inspection_date: record.inspectionDate,
+      slot_time: record.slotTime,
+    },
+    success_url: `${appUrl}/confirmation?id=${encodeURIComponent(record.id)}&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${appUrl}/checkout?package=${record.packageId}&cancelled=1`,
+  })
 }

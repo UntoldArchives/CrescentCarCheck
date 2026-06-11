@@ -1,4 +1,4 @@
-import { Emirate, Package, PreferredWindow } from '@/types/booking'
+import { DistanceClass, Emirate, Package, SlotTime } from '@/types/booking'
 
 export const PACKAGES: Package[] = [
   {
@@ -92,24 +92,35 @@ export const totalForPackage = (pkg: Package, emirate: Emirate | ''): number =>
   pkg.price + travelFeeForEmirate(emirate)
 
 /**
- * Preferred arrival windows. We deliberately do NOT offer exact times: there is
- * one inspector, so the customer picks a window and we confirm the precise
- * arrival time by WhatsApp once we've reviewed the car location and availability.
+ * Fixed daily inspection slots (one inspector, Asia/Dubai). The DB value is the
+ * 24-hour slot start; the label is what customers see. The slot rules (long-
+ * distance = 9:30 AM only + travel buffer, 1-hour minimum notice) are enforced
+ * by the booking_slot_availability / create_booking_hold RPCs in the shared
+ * Supabase project — this list only drives display and form options.
  */
-export interface TimeWindow {
-  id: PreferredWindow
+export interface Slot {
+  value: SlotTime
   label: string
-  range: string
 }
 
-export const TIME_WINDOWS: TimeWindow[] = [
-  { id: 'morning', label: 'Morning', range: '9:00 AM – 12:00 PM' },
-  { id: 'afternoon', label: 'Afternoon', range: '12:00 PM – 4:00 PM' },
-  { id: 'evening', label: 'Evening', range: '4:00 PM – 8:00 PM' },
+export const SLOTS: Slot[] = [
+  { value: '09:30', label: '9:30 AM' },
+  { value: '11:45', label: '11:45 AM' },
+  { value: '14:00', label: '2:00 PM' },
+  { value: '16:15', label: '4:15 PM' },
+  { value: '18:30', label: '6:30 PM' },
 ]
 
-export const getWindowById = (id: string): TimeWindow | undefined =>
-  TIME_WINDOWS.find((w) => w.id === id)
+/** Display label for a slot DB value (falls back to the raw value). */
+export const slotLabel = (slot: string): string =>
+  SLOTS.find((s) => s.value === slot)?.label ?? slot
+
+export const isSlotTime = (s: string): s is SlotTime =>
+  SLOTS.some((slot) => slot.value === s)
+
+/** Distance class for an emirate: 'long' iff it carries the travel fee. */
+export const distanceClassForEmirate = (emirate: Emirate | ''): DistanceClass =>
+  emirate && TRAVEL_FEE_EMIRATES.includes(emirate) ? 'long' : 'normal'
 
 // Note: the car make/model catalogue lives in lib/cars.ts (CAR_MAKES, MAKE_NAMES,
 // modelsForMake) and the emirate list is defined where it's used (CheckoutForm,

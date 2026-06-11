@@ -1,103 +1,40 @@
 import { NextResponse } from 'next/server'
 import { validateForm } from '@/lib/validation'
-import { getPackageById, travelFeeForEmirate } from '@/lib/packages'
-import { createServerClient, isSupabaseConfigured } from '@/lib/supabase/server'
-import { notifyNewBooking } from '@/lib/email'
-import type { BookingFormData, BookingRecord, Emirate, ParkingType, PreferredWindow } from '@/types/booking'
+import { getPackageById, travelFeeForEmirate, distanceClassForEmirate } from '@/lib/packages'
+import { isSupabaseConfigured } from '@/lib/supabase/server'
+import { createCheckoutSession, isStripeConfigured } from '@/lib/stripe'
+import {
+  SlotUnavailableError,
+  attachStripeSession,
+  createBookingHold,
+  getSlotAvailability,
+  releaseHold,
+  rowToRecord,
+} from '@/lib/availability'
+import type { BookingHoldInput } from '@/lib/availability'
+import type { BookingFormData, Emirate, ParkingType, SlotTime } from '@/types/booking'
 
 /**
- * Booking request handler (App Router Route Handler — server-only).
+ * Booking creation (App Router Route Handler — server-only, never cached).
  *
- * POST is never cached by Next, and this module is never bundled to the client,
- * so it is the correct place to read secrets LATER (SUPABASE_SERVICE_ROLE_KEY,
- * a Google service-account key, a Resend key). Do NOT import this file from a
- * client component, and never move those secrets into the form.
+ * Flow: validate → derive authoritative price → pre-check the chosen slot →
+ * create a payment HOLD via the create_booking_hold RPC (which generates the
+ * CCB-XXXXXX reference and enforces every slot rule atomically) → create a Stripe
+ * Checkout Session → return its URL. The customer is redirected to Stripe; the
+ * booking only becomes paid via the Stripe webhook (see
+ * app/api/webhooks/stripe/route.ts). No confirmation emails are sent here.
  *
- * Today it validates the payload, derives the authoritative package price/name,
- * builds a backend-ready BookingRecord with status `pending_confirmation`, and
- * returns a mock id. The integration seams below (Supabase / Google Calendar /
- * notifications) are no-ops that can be filled in without touching the frontend.
+ * Money is always computed from the package catalogue + emirate, never trusted
+ * from the client. The booking reference is owned by the database, not minted here.
  */
 
-function generateBookingId(): string {
-  const stamp = Date.now().toString(36).toUpperCase()
-  const rand = Math.random().toString(36).slice(2, 6).toUpperCase()
-  return `CCC-${stamp}-${rand}`
-}
+const UNAVAILABLE_MESSAGE = 'That slot was just booked. Please choose another time.'
 
-/**
- * Future Google Calendar integration boundary (no-op today).
- *
- * When wired with a server-side service account / OAuth client, this should:
- *   1. Read free/busy for the single inspector on `record.preferredDate`, within
- *      the time range of `record.preferredWindow` (see TIME_WINDOWS in
- *      lib/packages.ts: morning 09–12, afternoon 12–16, evening 16–20).
- *   2. Create a *tentative* hold/event spanning that window (status: tentative).
- *   3. Return the created event id so it can be stored as googleCalendarEventId.
- *
- * The owner later updates that event with the exact confirmed arrival time when
- * moving the booking from `pending_confirmation` -> `confirmed` (a separate
- * admin action, not part of this public endpoint).
- */
-async function reserveCalendarHold(record: BookingRecord): Promise<string | null> {
-  // No calendar connected yet. A real implementation would use
-  // record.preferredDate within the record.preferredWindow range to check
-  // free/busy, create a tentative hold, and return its event id.
-  void record
-  return null
-}
-
-/**
- * Persist the booking to Supabase when configured. BookingRecord maps 1:1 to the
- * `bookings` columns (see supabase/migrations/001_bookings.sql). While Supabase
- * is not configured this is a no-op + log, so the UI works today and starts
- * persisting the moment the env keys are added — no frontend change required.
- *
- * Throws on a real DB error (only possible when configured) so the caller can
- * tell the user the request was not saved instead of pretending it succeeded.
- */
-async function persistBooking(record: BookingRecord): Promise<void> {
-  if (!isSupabaseConfigured()) {
-    console.log('[booking] Supabase not configured — request validated but not stored', {
-      id: record.id,
-      status: record.status,
-      package: record.packageId,
-      emirate: record.emirate,
-      date: record.preferredDate,
-      window: record.preferredWindow,
-    })
-    return
-  }
-
-  const supabase = createServerClient()
-  const { error } = await supabase.from('bookings').insert({
-    id: record.id,
-    created_at: record.createdAt,
-    updated_at: record.updatedAt,
-    customer_name: record.customerName,
-    customer_phone: record.customerPhone,
-    customer_email: record.customerEmail,
-    emirate: record.emirate,
-    address: record.address,
-    location_lat: record.locationLat,
-    location_lng: record.locationLng,
-    parking_type: record.parkingType,
-    additional_notes: record.additionalNotes,
-    car_make: record.carMake,
-    car_model: record.carModel,
-    car_year: record.carYear,
-    preferred_date: record.preferredDate,
-    preferred_window: record.preferredWindow,
-    package_id: record.packageId,
-    package_name: record.packageName,
-    package_price: record.packagePrice,
-    travel_fee: record.travelFee,
-    total_price: record.totalPrice,
-    google_calendar_event_id: record.googleCalendarEventId,
-    booking_status: record.status,
-    // payment_status defaults to 'pending'; stripe_* columns stay null until wired.
-  })
-  if (error) throw error
+/** Resolves the public origin for Stripe success/cancel URLs. */
+function appUrl(req: Request): string {
+  const fromEnv = process.env.NEXT_PUBLIC_APP_URL
+  if (fromEnv) return fromEnv.replace(/\/$/, '')
+  return new URL(req.url).origin
 }
 
 export async function POST(req: Request) {
@@ -121,9 +58,11 @@ export async function POST(req: Request) {
     carMake: body.carMake ?? '',
     carModel: body.carModel ?? '',
     carYear: body.carYear ?? '',
+    vin: body.vin ?? '',
+    plateNumber: body.plateNumber ?? '',
     additionalNotes: body.additionalNotes ?? '',
-    preferredDate: body.preferredDate ?? '',
-    preferredWindow: body.preferredWindow ?? '',
+    inspectionDate: body.inspectionDate ?? '',
+    slotTime: body.slotTime ?? '',
     packageId: body.packageId ?? 'comprehensive',
   }
 
@@ -138,63 +77,99 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: 'Unknown package selected.' }, { status: 422 })
   }
 
-  // After validateForm() these enum-ish fields are guaranteed non-empty.
-  // Travel fee + total are derived server-side from the canonical rule so the
-  // customer can't tamper with the surcharge.
+  // The payment flow needs both Supabase (to hold the slot) and Stripe (to take
+  // payment). Without them we can't honour "pay to secure the slot", so fail
+  // clearly instead of pretending the booking went through.
+  if (!isSupabaseConfigured() || !isStripeConfigured()) {
+    console.error('[booking] payment flow not configured', {
+      supabase: isSupabaseConfigured(),
+      stripe: isStripeConfigured(),
+    })
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'Online booking is temporarily unavailable. Please WhatsApp us to book.',
+      },
+      { status: 503 },
+    )
+  }
+
   const emirate = form.emirate as Emirate
+  const slotTime = form.slotTime as SlotTime
   const travelFee = travelFeeForEmirate(emirate)
-  const now = new Date().toISOString()
-  const record: BookingRecord = {
-    id: generateBookingId(),
-    status: 'pending_confirmation',
+  const distance = distanceClassForEmirate(emirate)
+
+  const input: BookingHoldInput = {
+    customerName: form.customerName.trim(),
+    customerPhone: form.customerPhone.trim(),
+    customerEmail: form.customerEmail.trim() || null,
+    emirate,
+    address: form.address.trim(),
+    locationLat: form.locationLat,
+    locationLng: form.locationLng,
+    parkingType: (form.parkingType as ParkingType) || null,
+    additionalNotes: form.additionalNotes.trim() || null,
+    carMake: form.carMake.trim(),
+    carModel: form.carModel.trim(),
+    carYear: form.carYear,
+    vin: form.vin.trim() || null,
+    plateNumber: form.plateNumber.trim() || null,
+    inspectionDate: form.inspectionDate,
+    slotTime,
     packageId: pkg.id,
     packageName: pkg.name,
     packagePrice: pkg.price,
     travelFee,
     totalPrice: pkg.price + travelFee,
-    customerName: form.customerName.trim(),
-    customerPhone: form.customerPhone.trim(),
-    customerEmail: form.customerEmail.trim() || null,
-    carMake: form.carMake.trim(),
-    carModel: form.carModel.trim(),
-    carYear: form.carYear,
-    emirate,
-    parkingType: form.parkingType as ParkingType,
-    address: form.address.trim(),
-    locationLat: form.locationLat,
-    locationLng: form.locationLng,
-    preferredDate: form.preferredDate,
-    preferredWindow: form.preferredWindow as PreferredWindow,
-    additionalNotes: form.additionalNotes.trim() || null,
-    googleCalendarEventId: null,
-    createdAt: now,
-    updatedAt: now,
   }
 
-  // --- Integrations (each dormant until its env keys are present) ---
-  // 1) Reserve a tentative calendar hold for the chosen date/window.
-  // 2) Persist the booking (Supabase insert when configured).
-  // A failure in either means the request was NOT saved — tell the user rather
-  // than pretending it went through.
+  // 1) Pre-check availability for the chosen date/slot. This is a friendly early
+  //    exit only — the authoritative, atomic check is createBookingHold below.
   try {
-    record.googleCalendarEventId = await reserveCalendarHold(record)
-    await persistBooking(record)
+    const slots = await getSlotAvailability(form.inspectionDate, distance)
+    const chosen = slots.find((s) => s.slot === slotTime)
+    if (!chosen || !chosen.available) {
+      return NextResponse.json({ ok: false, error: UNAVAILABLE_MESSAGE }, { status: 409 })
+    }
   } catch (err) {
-    console.error('[booking] failed to save booking request', err)
+    console.error('[booking] availability check failed', err)
     return NextResponse.json(
-      {
-        ok: false,
-        error:
-          'We could not save your request just now. Please try again, or message us on WhatsApp.',
-      },
+      { ok: false, error: 'We could not check availability just now. Please try again.' },
       { status: 500 },
     )
   }
 
-  // 3) Notify the team + customer by email. Best-effort: the booking is already
-  //    saved, so an email failure must not fail the request (notifyNewBooking
-  //    swallows its own errors).
-  await notifyNewBooking(record)
+  // 2) Insert the payment hold. The create_booking_hold RPC validates every slot
+  //    rule atomically and returns the row, including the DB-generated reference;
+  //    a concurrent insert for the same slot loses the race and raises
+  //    SLOT_UNAVAILABLE (→ 409).
+  let booking
+  try {
+    booking = await createBookingHold(input)
+  } catch (err) {
+    if (err instanceof SlotUnavailableError) {
+      return NextResponse.json({ ok: false, error: UNAVAILABLE_MESSAGE }, { status: 409 })
+    }
+    console.error('[booking] failed to create hold', err)
+    return NextResponse.json(
+      { ok: false, error: 'We could not save your request just now. Please try again.' },
+      { status: 500 },
+    )
+  }
 
-  return NextResponse.json({ ok: true, id: record.id, status: record.status })
+  // 3) Create the Stripe Checkout Session and persist its id on the hold.
+  try {
+    const session = await createCheckoutSession(rowToRecord(booking), appUrl(req))
+    if (!session.url) throw new Error('Stripe session has no URL')
+    await attachStripeSession(booking.id, session.id)
+    return NextResponse.json({ ok: true, checkoutUrl: session.url, bookingId: booking.id })
+  } catch (err) {
+    console.error('[booking] Stripe session creation failed', err)
+    // Release the hold so the slot frees immediately instead of waiting 30 min.
+    await releaseHold(booking.id).catch(() => {})
+    return NextResponse.json(
+      { ok: false, error: 'We could not start the payment. Please try again.' },
+      { status: 502 },
+    )
+  }
 }

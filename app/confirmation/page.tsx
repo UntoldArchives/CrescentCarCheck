@@ -18,7 +18,7 @@ const NEXT_STEPS = [
   {
     n: '1',
     title: 'We confirm your slot',
-    body: "We'll review availability and message you on WhatsApp to confirm the exact arrival time for your preferred date and window.",
+    body: "Your booking is confirmed for your selected slot. Our team will contact you on WhatsApp to confirm the exact arrival timing.",
   },
   {
     n: '2',
@@ -44,13 +44,16 @@ export default function ConfirmationPage() {
             >
               <CheckCircle2 className="w-8 h-8 text-success" />
             </div>
+            <p className="text-success font-semibold text-sm uppercase tracking-wider mb-3">
+              Payment received
+            </p>
             <h1 className="text-display-md sm:text-display-lg md:text-display-xl font-black text-text-primary leading-[1.05] md:leading-[1.02] break-words">
-              We&apos;ve received your <span className="text-accent">booking request</span>.
+              Your <span className="text-accent">inspection request</span> is in.
             </h1>
             <p className="text-text-secondary text-base md:text-lg mt-5 max-w-2xl leading-relaxed">
-              Thanks! We&apos;ve received your booking and payment. We&apos;ll review the
-              car&apos;s location and our inspector&apos;s availability, then confirm the
-              exact arrival time by WhatsApp.
+              Thanks! We&apos;ve received your payment and your inspection request. We&apos;ll
+              review the car&apos;s location and our inspector&apos;s availability, then confirm
+              the exact arrival time by WhatsApp.
             </p>
 
             <Suspense fallback={null}>

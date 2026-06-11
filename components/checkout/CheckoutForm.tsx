@@ -1,12 +1,12 @@
 'use client'
 
 import { useId, useMemo, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { ShieldCheck, Car, MapPin, Calendar, User, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Field, inputBase, selectClass, selectChevronStyle, fieldBorder } from '@/components/ui/Field'
 import { Button } from '@/components/ui/Button'
-import { PACKAGES, travelFeeForEmirate } from '@/lib/packages'
+import { PACKAGES, travelFeeForEmirate, distanceClassForEmirate } from '@/lib/packages'
 import { validateForm } from '@/lib/validation'
 import { trackEvent, GA_EVENTS } from '@/lib/analytics'
 import { VehicleSelector } from './VehicleSelector'
@@ -46,9 +46,11 @@ function emptyForm(packageId: PackageId): BookingFormData {
     carMake: '',
     carModel: '',
     carYear: '',
+    vin: '',
+    plateNumber: '',
     additionalNotes: '',
-    preferredDate: '',
-    preferredWindow: '',
+    inspectionDate: '',
+    slotTime: '',
     packageId,
   }
 }
@@ -58,7 +60,6 @@ function isValidPackageId(s: string): s is PackageId {
 }
 
 export function CheckoutForm() {
-  const router = useRouter()
   const search = useSearchParams()
   const baseId = useId()
 
@@ -71,10 +72,14 @@ export function CheckoutForm() {
   const [errors, setErrors] = useState<BookingFormErrors>({})
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  // Bumped to force ScheduleSlot to re-check availability (e.g. after a 409).
+  const [availabilityRefresh, setAvailabilityRefresh] = useState(0)
 
   const pkg = PACKAGES.find((p) => p.id === form.packageId) ?? PACKAGES[1]
   const travelFee = travelFeeForEmirate(form.emirate)
+  const distance = distanceClassForEmirate(form.emirate)
   const total = pkg.price + travelFee
+  const paymentCancelled = search.get('cancelled') === '1'
 
   const id = (k: string) => `${baseId}-${k}`
 
@@ -117,19 +122,33 @@ export function CheckoutForm() {
       })
       const data = (await res.json().catch(() => ({}))) as {
         ok?: boolean
-        id?: string
+        checkoutUrl?: string
+        bookingId?: string
         error?: string
       }
-      if (!res.ok || !data.ok || !data.id) {
+
+      // 409 = the slot was taken between our availability check and submit.
+      if (res.status === 409) {
+        setSubmitting(false)
+        setSubmitError(
+          'That slot was just booked. Please choose another time or WhatsApp us for help.',
+        )
+        // Clear the now-invalid slot and re-check availability for the date.
+        update({ slotTime: '' })
+        setAvailabilityRefresh((n) => n + 1)
+        return
+      }
+
+      if (!res.ok || !data.ok || !data.checkoutUrl) {
         setSubmitting(false)
         setSubmitError(data.error ?? 'Something went wrong. Please try again.')
         return
       }
+
       trackEvent(GA_EVENTS.CHECKOUT_SUBMITTED, { package: form.packageId })
-      router.push(
-        `/confirmation?id=${encodeURIComponent(data.id)}&package=${form.packageId}` +
-          `&emirate=${encodeURIComponent(form.emirate)}`,
-      )
+      // Hand off to Stripe Checkout. Keep `submitting` true through the redirect
+      // so the button stays disabled.
+      window.location.href = data.checkoutUrl
     } catch {
       setSubmitting(false)
       setSubmitError('Network error. Please check your connection and try again.')
@@ -141,6 +160,17 @@ export function CheckoutForm() {
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-8 lg:gap-10 items-start">
         {/* Left: form sections */}
         <div className="space-y-10 min-w-0">
+          {paymentCancelled && (
+            <div
+              className="rounded-card border border-accent/40 bg-accent/5 px-4 py-3 text-sm text-light-text"
+              role="status"
+            >
+              Payment was cancelled — your booking isn&apos;t confirmed yet. Your details are
+              still here; review them and tap <strong>Pay &amp; Book Inspection</strong> when
+              you&apos;re ready.
+            </div>
+          )}
+
           {/* Vehicle */}
           <section aria-labelledby="vehicle-heading">
             <SectionHeading icon={Car} step="1" id="vehicle-heading" title="The Car" hint="Tell us which vehicle we'll be inspecting." />
@@ -152,6 +182,30 @@ export function CheckoutForm() {
               errors={{ carMake: errors.carMake, carModel: errors.carModel, carYear: errors.carYear }}
               onChange={update}
             />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+              <Field id={id('vin')} label="VIN / chassis number" optional hint="If you have it — helps us prep for the inspection.">
+                <input
+                  id={id('vin')}
+                  type="text"
+                  autoComplete="off"
+                  value={form.vin}
+                  onChange={(e) => update({ vin: e.target.value })}
+                  className={cn(inputBase, fieldBorder(undefined))}
+                />
+              </Field>
+
+              <Field id={id('plateNumber')} label="Plate number" optional hint="If you have it.">
+                <input
+                  id={id('plateNumber')}
+                  type="text"
+                  autoComplete="off"
+                  value={form.plateNumber}
+                  onChange={(e) => update({ plateNumber: e.target.value })}
+                  className={cn(inputBase, fieldBorder(undefined))}
+                />
+              </Field>
+            </div>
           </section>
 
           {/* Location */}
@@ -226,13 +280,15 @@ export function CheckoutForm() {
 
           {/* Schedule */}
           <section aria-labelledby="schedule-heading">
-            <SectionHeading icon={Calendar} step="3" id="schedule-heading" title="When Should We Come?" hint="Pick a date and a preferred window — we'll confirm the exact time by WhatsApp, and we'll do our best to fit in same-day requests." />
+            <SectionHeading icon={Calendar} step="3" id="schedule-heading" title="When Should We Come?" hint="Pick a date and time slot — our team will confirm the exact arrival timing by WhatsApp, and we'll do our best to fit in same-day requests." />
             <ScheduleSlot
               idPrefix={baseId}
-              preferredDate={form.preferredDate}
-              preferredWindow={form.preferredWindow}
-              errors={{ preferredDate: errors.preferredDate, preferredWindow: errors.preferredWindow }}
+              inspectionDate={form.inspectionDate}
+              slotTime={form.slotTime}
+              distance={distance}
+              errors={{ inspectionDate: errors.inspectionDate, slotTime: errors.slotTime }}
               onChange={update}
+              refreshKey={availabilityRefresh}
             />
           </section>
 
@@ -309,7 +365,8 @@ export function CheckoutForm() {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
               <p className="text-light-text-muted text-xs leading-relaxed max-w-sm flex items-start gap-1.5">
                 <Lock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" aria-hidden="true" />
-                Your details are used only to arrange this inspection. No spam, no resale of your data.
+                Payment secures your inspection request. We&apos;ll message you to confirm the
+                exact arrival time.
               </p>
               <Button
                 type="submit"
@@ -317,15 +374,15 @@ export function CheckoutForm() {
                 loading={submitting}
                 className="sm:min-w-[260px]"
               >
-                {submitting ? 'Sending request…' : 'Book Inspection'}
+                {submitting ? 'Redirecting to payment…' : 'Pay & Book Inspection'}
               </Button>
             </div>
 
             <p className="text-light-text-muted text-xs mt-4 sm:text-right flex items-center sm:justify-end gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
               AED {total}
-              {travelFee > 0 ? ` (incl. AED ${travelFee} travel)` : ''} — paid securely
-              online now to confirm your booking.
+              {travelFee > 0 ? ` (incl. AED ${travelFee} travel)` : ''} — paid securely with
+              Stripe. You&apos;ll be redirected to complete payment.
             </p>
           </div>
         </div>

@@ -1,5 +1,37 @@
 import { NextResponse } from 'next/server'
 import { notifyContactMessage } from '@/lib/email'
+import { createServerClient, isSupabaseConfigured } from '@/lib/supabase/server'
+
+/** Saves the contact message so it's never lost if email delivery fails. Best-effort. */
+async function saveContactMessage(msg: {
+  name: string
+  email: string
+  phone?: string
+  topic?: string
+  carMake?: string
+  carModel?: string
+  carYear?: string
+  message: string
+}): Promise<void> {
+  if (!isSupabaseConfigured()) return
+  try {
+    const { error } = await createServerClient()
+      .from('contact_messages')
+      .insert({
+        name: msg.name,
+        email: msg.email,
+        phone: msg.phone || null,
+        topic: msg.topic || null,
+        car_make: msg.carMake || null,
+        car_model: msg.carModel || null,
+        car_year: msg.carYear || null,
+        message: msg.message,
+      })
+    if (error) throw error
+  } catch (err) {
+    console.error('[contact] failed to save message (continuing to email)', err)
+  }
+}
 
 interface ContactPayload {
   name?: string
@@ -40,7 +72,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: 'Please write a longer message' }, { status: 422 })
   }
 
-  await notifyContactMessage({
+  const payload = {
     name,
     email,
     phone: body.phone?.trim(),
@@ -49,7 +81,11 @@ export async function POST(req: Request) {
     carModel: body.carModel?.trim() || undefined,
     carYear: body.carYear?.trim() || undefined,
     message,
-  })
+  }
+
+  // Save first (so nothing is lost if email fails), then notify the owner.
+  await saveContactMessage(payload)
+  await notifyContactMessage(payload)
 
   return NextResponse.json({ ok: true })
 }

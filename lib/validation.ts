@@ -47,12 +47,14 @@ export function validateForm(form: BookingFormData): BookingFormErrors {
   if (!form.carModel.trim()) errors.carModel = 'Please enter the car model'
   if (!form.carYear) errors.carYear = 'Please select the year'
 
-  if (!form.preferredDate) {
-    errors.preferredDate = 'Please choose a preferred date'
-  } else if (form.preferredDate < todayISO()) {
-    errors.preferredDate = 'Please choose today or a future date'
+  if (!form.inspectionDate) {
+    errors.inspectionDate = 'Please choose a date'
+  } else if (form.inspectionDate < todayISO()) {
+    errors.inspectionDate = 'Please choose today or a future date'
   }
-  if (!form.preferredWindow) errors.preferredWindow = 'Please choose a preferred time window'
+  if (!form.slotTime) errors.slotTime = 'Please choose a time slot'
+
+  // VIN and plate number are optional — no validation.
 
   return errors
 }

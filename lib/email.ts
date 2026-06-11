@@ -1,5 +1,5 @@
 import { getResend, isResendConfigured } from '@/lib/resend'
-import { getWindowById } from '@/lib/packages'
+import { slotLabel } from '@/lib/packages'
 import type { BookingRecord } from '@/types/booking'
 
 /**
@@ -53,8 +53,6 @@ function row(label: string, value: string): string {
 }
 
 function bookingTable(record: BookingRecord): string {
-  const win = getWindowById(record.preferredWindow)
-  const windowText = win ? `${win.label} (${win.range})` : record.preferredWindow
   // Coerce to finite numbers before interpolating into the href. The API uses a
   // type-assertion (not runtime validation), so these could arrive as arbitrary
   // JSON; forcing them to real numbers makes HTML/URL injection impossible.
@@ -68,29 +66,40 @@ function bookingTable(record: BookingRecord): string {
   const mapLink = hasCoords
     ? `<a href="https://www.google.com/maps?q=${lat},${lng}" style="color:#a16207;">Open in Maps</a>`
     : ''
+  const paymentText =
+    record.paymentStatus === 'paid'
+      ? `Paid — AED ${record.totalPrice}`
+      : `${record.paymentStatus} — AED ${record.totalPrice}`
   return `<table style="width:100%;border-collapse:collapse;">
     ${row('Reference', esc(record.id))}
     ${row('Package', `${esc(record.packageName)} — AED ${record.packagePrice}`)}
     ${record.travelFee > 0 ? row('Travel fee', `AED ${record.travelFee} (${esc(record.emirate)})`) : ''}
-    ${row('Total', `AED ${record.totalPrice}`)}
+    ${row('Total paid', `AED ${record.totalPrice}`)}
+    ${row('Payment', esc(paymentText))}
     ${row('Name', esc(record.customerName))}
     ${row('Phone', esc(record.customerPhone))}
     ${row('Email', esc(record.customerEmail || '—'))}
     ${row('Vehicle', esc(`${record.carMake} ${record.carModel} (${record.carYear})`))}
+    ${record.vin ? row('VIN', esc(record.vin)) : ''}
+    ${record.plateNumber ? row('Plate', esc(record.plateNumber)) : ''}
     ${row('Emirate', esc(record.emirate))}
-    ${row('Parking', esc(record.parkingType))}
+    ${row('Parking', esc(record.parkingType ?? '—'))}
     ${row('Address', `${esc(record.address)} ${mapLink}`)}
-    ${row('Preferred date', esc(record.preferredDate))}
-    ${row('Preferred window', esc(windowText))}
+    ${row('Date', esc(record.inspectionDate))}
+    ${row('Slot', esc(slotLabel(record.slotTime)))}
     ${record.additionalNotes ? row('Notes', esc(record.additionalNotes)) : ''}
   </table>`
 }
 
+const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '971502526314'
+const BUSINESS_PHONE = process.env.NEXT_PUBLIC_BUSINESS_PHONE || '+971 502526314'
+
 /**
- * Sends the owner a new-booking alert and (if an email was provided) a
- * confirmation to the customer. Safe to await — never throws.
+ * Sent ONLY after Stripe confirms payment (from the webhook). Emails the owner a
+ * paid-booking alert and, if the customer shared an email, a confirmation.
+ * Safe to await — never throws.
  */
-export async function notifyNewBooking(record: BookingRecord): Promise<void> {
+export async function notifyPaidBooking(record: BookingRecord): Promise<void> {
   if (!isResendConfigured()) {
     console.log('[email] Resend not configured — skipping booking notifications', {
       id: record.id,
@@ -108,10 +117,10 @@ export async function notifyNewBooking(record: BookingRecord): Promise<void> {
         from,
         to: OWNER_EMAIL,
         replyTo: record.customerEmail || undefined,
-        subject: `New booking ${record.id} — ${record.packageName} (${record.emirate})`,
+        subject: `PAID booking ${record.id} — ${record.packageName} (${record.emirate})`,
         html: layout(
-          'New inspection request',
-          `<p style="font-size:14px;color:#3f3f46;margin:0 0 16px;">A new booking request just came in:</p>${bookingTable(record)}`,
+          'New paid inspection request',
+          `<p style="font-size:14px;color:#3f3f46;margin:0 0 16px;">A booking was just paid and is awaiting time confirmation:</p>${bookingTable(record)}`,
         ),
       })
     } catch (err) {
@@ -127,15 +136,24 @@ export async function notifyNewBooking(record: BookingRecord): Promise<void> {
       await resend.emails.send({
         from,
         to: record.customerEmail,
-        subject: `We've received your booking request (${record.id})`,
+        subject: `Payment received — your inspection request (${record.id})`,
         html: layout(
           `Thanks, ${esc(record.customerName.split(' ')[0] || 'there')}!`,
           `<p style="font-size:14px;color:#3f3f46;margin:0 0 16px;">
-             We've received your booking and payment, and we'll confirm the exact arrival
-             time on WhatsApp shortly.
+             Your inspection booking is confirmed for your selected slot. Our team will contact
+             you on WhatsApp to confirm the exact arrival timing.
            </p>
-           <p style="font-size:14px;color:#3f3f46;margin:0 0 16px;">Here's what you booked:</p>
-           ${bookingTable(record)}`,
+           <table style="width:100%;border-collapse:collapse;margin:0 0 16px;">
+             ${row('Reference', esc(record.id))}
+             ${row('Package', `${esc(record.packageName)} — AED ${record.packagePrice}`)}
+             ${row('Amount paid', `AED ${record.totalPrice}`)}
+             ${row('Date', esc(record.inspectionDate))}
+             ${row('Slot', esc(slotLabel(record.slotTime)))}
+           </table>
+           <p style="font-size:14px;color:#3f3f46;margin:0;">
+             Questions? WhatsApp us on
+             <a href="https://wa.me/${esc(WHATSAPP_NUMBER)}" style="color:#a16207;">${esc(BUSINESS_PHONE)}</a>.
+           </p>`,
         ),
       })
     } catch (err) {
